@@ -39,7 +39,12 @@ class App {
       sidebar: document.querySelector('.sidebar'),
       sidebarOverlay: document.querySelector('#sidebarOverlay'),
       errorDisplay: document.querySelector('#errorDisplay'),
-      retryBtn: document.querySelector('#retryBtn')
+      retryBtn: document.querySelector('#retryBtn'),
+      exportFavBtn: document.querySelector('#exportFavBtn'),
+      importFavFile: document.querySelector('#importFavFile'),
+      clearFavBtn: document.querySelector('#clearFavBtn'),
+      favCountLabel: document.querySelector('#favCountLabel'),
+      favToast: document.querySelector('#favToast')
     };
 
     this.virtualScroll = {
@@ -130,6 +135,7 @@ class App {
 
     // Settings Modal
     this.elements.settingsBtn.addEventListener('click', () => {
+      this.updateFavCount();
       this.elements.settingsModal.classList.add('show');
     });
 
@@ -225,6 +231,19 @@ class App {
           this.playChannel(this.state.activeChannel);
         }
       });
+    }
+
+    // ===== Favorites Import / Export =====
+    if (this.elements.exportFavBtn) {
+      this.elements.exportFavBtn.addEventListener('click', () => this.exportFavorites());
+    }
+
+    if (this.elements.importFavFile) {
+      this.elements.importFavFile.addEventListener('change', (e) => this.importFavorites(e));
+    }
+
+    if (this.elements.clearFavBtn) {
+      this.elements.clearFavBtn.addEventListener('click', () => this.clearFavorites());
     }
   }
 
@@ -523,6 +542,119 @@ class App {
     if (window.innerWidth <= 768) {
       this.toggleSidebar(false);
     }
+  }
+
+  // ===== Favorites Count =====
+  updateFavCount() {
+    const favs = Storage.getFavorites();
+    if (this.elements.favCountLabel) {
+      this.elements.favCountLabel.textContent = `Sevimlilar: ${favs.length} ta kanal`;
+    }
+  }
+
+  // ===== Export Favorites =====
+  exportFavorites() {
+    const favUrls = Storage.getFavorites();
+    if (favUrls.length === 0) {
+      this.showFavToast('⚠️ Hech qanday sevimli kanal yo\'q!', 'error');
+      return;
+    }
+
+    // Collect full channel metadata for matched URLs
+    const favChannels = favUrls.map(url => {
+      const ch = this.state.channels.find(c => c.url === url);
+      return ch ? { name: ch.name, url: ch.url, logo: ch.logo, group: ch.group } : { url };
+    });
+
+    const exportData = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      count: favChannels.length,
+      favorites: favChannels
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `iptv-favorites-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    this.showFavToast(`✅ ${favChannels.length} ta kanal eksport qilindi!`);
+  }
+
+  // ===== Import Favorites =====
+  importFavorites(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+
+        // Accept both simple URL array and structured export format
+        let urls = [];
+        if (Array.isArray(data)) {
+          urls = data.map(item => typeof item === 'string' ? item : item.url).filter(Boolean);
+        } else if (data.favorites && Array.isArray(data.favorites)) {
+          urls = data.favorites.map(item => typeof item === 'string' ? item : item.url).filter(Boolean);
+        } else {
+          throw new Error('Noto\'g\'ri fayl formati');
+        }
+
+        // Merge with existing favorites (no duplicates)
+        const existing = Storage.getFavorites();
+        const merged = Array.from(new Set([...existing, ...urls]));
+        Storage.set(Storage.KEYS.FAVORITES, merged);
+
+        const added = merged.length - existing.length;
+        this.updateFavCount();
+        this.showFavToast(`✅ ${added} ta yangi kanal import qilindi! (Jami: ${merged.length})`);
+
+        // Refresh list if on favorites tab
+        if (this.state.currentTab === 'fav') this.filterChannels();
+      } catch (err) {
+        this.showFavToast('❌ Xato: ' + (err.message || 'Fayl o\'qib bo\'lmadi'), 'error');
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input so same file can be re-chosen
+    event.target.value = '';
+  }
+
+  // ===== Clear All Favorites =====
+  clearFavorites() {
+    const favs = Storage.getFavorites();
+    if (favs.length === 0) {
+      this.showFavToast('⚠️ Sevimlilar ro\'yxati allaqachon bo\'sh!', 'error');
+      return;
+    }
+    if (!confirm(`Jami ${favs.length} ta sevimli kanalning barchasini o'chirasizmi?`)) return;
+
+    Storage.set(Storage.KEYS.FAVORITES, []);
+    this.updateFavCount();
+    this.showFavToast('🗑️ Barcha sevimlilar o\'chirildi.');
+
+    if (this.state.currentTab === 'fav') this.filterChannels();
+  }
+
+  // ===== Toast Message =====
+  showFavToast(message, type = 'success') {
+    const toast = this.elements.favToast;
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.classList.remove('hidden', 'error');
+    if (type === 'error') toast.classList.add('error');
+
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.classList.add('hidden');
+    }, 3500);
   }
 }
 
