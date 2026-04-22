@@ -42,10 +42,26 @@ const Parser = {
           tags.push(matchTags[1].trim());
         }
         
-        // Clean name by removing tags
-        let cleanName = rawName.replace(/[\(\[][^)\]]+[\)\]]/g, '').trim();
-        // Remove trailing hyphens or pipes if any left
-        cleanName = cleanName.replace(/[-\|]+$/, '').trim();
+        // Clean name by removing tags, countries, and categories
+        let cleanName = rawName;
+        
+        // 1. Remove bracketed parts like (RU), [HD]
+        cleanName = cleanName.replace(/[\(\[][^)\]]+[\)\]]/g, '').trim(); 
+        
+        // 2. Remove known standard geo/category prefixes followed by |, :, or -
+        const geoPrefixes = 'UK|USA?|RU|TR|FR|DE|IT|ES|EN|PT|NL|PL|GR|RO|AR|BE|CH|AT|AU|CA|IN|PK|BD|IR|IL|CZ|SK|HU|BG|RS|HR|SI|MK|AL|VIP|VOD|ARABIC|LATAM|AFRICA|ASIA|SPORTS?|MOVIES?|NEWS|KIDS|MUSIC|XXX|LOCAL|INFO';
+        const geoRegex = new RegExp(`^(?:${geoPrefixes})\\s*[:\\|\\-]\\s*`, 'i');
+        cleanName = cleanName.replace(geoRegex, '');
+        
+        // 3. Remove arbitrary words separated by pipe "|", pipe is mostly an IPTV delimiter
+        cleanName = cleanName.replace(/^[A-Za-z0-9\s]{2,12}\s*\|\s*/, '');
+        
+        // 4. Remove fallback strict 2 uppercase letters joined by colon or hyphen (e.g., RU: Perviy)
+        cleanName = cleanName.replace(/^(?!TV\b)[A-Z]{2}\s*[:\-]\s*/, '');
+
+        // 5. Clean leftover trailing and leading junk
+        cleanName = cleanName.replace(/^[\s\-\|\:~_]+|[\s\-\|\:~_]+$/g, '').trim();
+        cleanName = cleanName || rawName;
         
         // Parse attributes
         const attributes = info.substring(0, commaIndex !== -1 ? commaIndex : info.length);
