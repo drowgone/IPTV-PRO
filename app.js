@@ -71,7 +71,7 @@ class App {
     if (!alphabetIndicator || this.state.filteredChannels.length === 0) return;
 
     // Show indicator
-    alphabetIndicator.classList.add('show');
+    alphabetIndicator.classList.add('is-scrolling');
 
     // Get current first visible item
     const scrollTop = this.elements.channelList.scrollTop;
@@ -86,8 +86,8 @@ class App {
     // Hide after inactivity
     clearTimeout(this.scrollTimeout);
     this.scrollTimeout = setTimeout(() => {
-      alphabetIndicator.classList.remove('show');
-    }, 800);
+      alphabetIndicator.classList.remove('is-scrolling');
+    }, 500);
   }
 
   async init() {
