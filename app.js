@@ -11,7 +11,8 @@ class App {
         country: '',
         language: '',
         category: ''
-      }
+      },
+      contextChannel: null
     };
 
     this.elements = {
@@ -48,7 +49,8 @@ class App {
       countAll: document.querySelector('#count-all'),
       countFav: document.querySelector('#count-fav'),
       countRecent: document.querySelector('#count-recent'),
-      alphabetIndicator: document.querySelector('#alphabetIndicator')
+      alphabetIndicator: document.querySelector('#alphabetIndicator'),
+      contextMenu: document.querySelector('#contextMenu')
     };
 
     this.scrollTimeout = null;
@@ -64,6 +66,7 @@ class App {
     });
 
     this.init();
+    this.initContextMenu();
   }
 
   handleScrollIndicator() {
@@ -174,6 +177,17 @@ class App {
 
     this.elements.closeModalBtn.addEventListener('click', () => {
       this.elements.settingsModal.classList.remove('show');
+    });
+
+    // Global click to hide context menu
+    document.addEventListener('click', () => {
+      if (this.elements.contextMenu) this.elements.contextMenu.classList.remove('show');
+    });
+
+    document.addEventListener('contextmenu', (e) => {
+      if (!e.target.closest('.channel-item')) {
+        if (this.elements.contextMenu) this.elements.contextMenu.classList.remove('show');
+      }
     });
 
     this.elements.saveSettingsBtn.addEventListener('click', async () => {
@@ -356,6 +370,39 @@ class App {
     if (this.elements.countRecent) this.elements.countRecent.textContent = Storage.getRecentChannels().length;
   }
 
+  initContextMenu() {
+    const menu = this.elements.contextMenu;
+    if (!menu) return;
+
+    const actions = {
+      menuPlay: () => { window.location.href = this.state.contextChannel.url; },
+      menuNewTab: () => { window.open(this.state.contextChannel.url, '_blank'); },
+      menuFav: () => {
+        Storage.toggleFavorite(this.state.contextChannel.url);
+        this.updateFavCount();
+        this.updateTabCounts();
+        if (this.state.currentTab === 'fav') this.filterChannels();
+        else this.renderList();
+      },
+      menuCopy: () => {
+        navigator.clipboard.writeText(this.state.contextChannel.url);
+        this.showFavToast('🔗 Havoladan nusxa olindi!');
+      },
+      menuInfo: () => {
+        const ch = this.state.contextChannel;
+        const info = `📺 Nomi: ${ch.name}\n📂 Guruh: ${ch.group}\n🌍 Davlat: ${ch.countries?.join(', ') || 'Noma\'lum'}\n🗣 Til: ${ch.languages?.join(', ') || 'Noma\'lum'}\n🏷 Teglar: ${ch.tags?.join(', ') || 'Yo\'q'}`;
+        alert(info);
+      }
+    };
+
+    menu.querySelectorAll('li').forEach(li => {
+      li.addEventListener('click', () => {
+        if (this.state.contextChannel) actions[li.id]();
+        menu.classList.remove('show');
+      });
+    });
+  }
+
   async loadPlaylist(url) {
     this.elements.loader.classList.add('show');
     try {
@@ -495,6 +542,7 @@ class App {
   createChannelElement(channel) {
     const div = document.createElement('div');
     div.className = `channel-item ${this.state.activeChannel?.url === channel.url ? 'active' : ''}`;
+    div.setAttribute('data-url', channel.url);
     
     const isFav = Storage.isFavorite(channel.url);
     const fallbackLogo = this.getFallbackLogo(channel.name);
@@ -557,6 +605,35 @@ class App {
       }
       
       this.playChannel(channel);
+    });
+
+    // Context Menu Event
+    div.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.state.contextChannel = channel;
+      
+      const menu = this.elements.contextMenu;
+      if (!menu) return;
+
+      // Update Favorite text
+      const favLi = menu.querySelector('#menuFav');
+      const isFav = Storage.isFavorite(channel.url);
+      favLi.innerHTML = isFav ? '💔 Sevimlilardan o\'chirish' : '❤️ Sevimlilarga qo\'shish';
+
+      menu.classList.remove('hidden');
+      menu.classList.add('show');
+
+      // Position
+      const menuWidth = 220;
+      const menuHeight = 240;
+      let x = e.clientX;
+      let y = e.clientY;
+
+      if (x + menuWidth > window.innerWidth) x -= menuWidth;
+      if (y + menuHeight > window.innerHeight) y -= menuHeight;
+
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
     });
 
     return div;
