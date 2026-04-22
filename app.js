@@ -1,0 +1,532 @@
+class App {
+  constructor() {
+    this.state = {
+      channels: [],
+      filteredChannels: [],
+      activeChannel: null,
+      currentTab: 'all', // 'all' or 'fav'
+      isLoading: false,
+      searchQuery: '',
+      filters: {
+        country: '',
+        language: '',
+        category: ''
+      }
+    };
+
+    this.elements = {
+      channelList: document.querySelector('.channel-list-container'),
+      phantom: document.querySelector('.channel-list-phantom'),
+      content: document.querySelector('.channel-list-content'),
+      video: document.querySelector('#mainVideo'),
+      videoContainer: document.querySelector('.video-container'),
+      searchInput: document.querySelector('.search-input'),
+      filterToggleBtn: document.querySelector('#filterToggleBtn'),
+      advancedFilterPanel: document.querySelector('#advancedFilterPanel'),
+      countryFilter: document.querySelector('#countryFilter'),
+      languageFilter: document.querySelector('#languageFilter'),
+      categoryFilter: document.querySelector('#categoryFilter'),
+      settingsBtn: document.querySelector('#settingsBtn'),
+      settingsModal: document.querySelector('#settingsModal'),
+      closeModalBtn: document.querySelector('#closeModalBtn'),
+      saveSettingsBtn: document.querySelector('#saveSettingsBtn'),
+      m3uInput: document.querySelector('#m3uInput'),
+      themeBtns: document.querySelectorAll('.theme-btn'),
+      tabBtns: document.querySelectorAll('.tab-btn'),
+      loader: document.querySelector('.loader'),
+      channelNameDisplay: document.querySelector('#channelNameDisplay'),
+      mobileMenuBtn: document.querySelector('#mobileMenuBtn'),
+      sidebar: document.querySelector('.sidebar'),
+      sidebarOverlay: document.querySelector('#sidebarOverlay'),
+      errorDisplay: document.querySelector('#errorDisplay'),
+      retryBtn: document.querySelector('#retryBtn')
+    };
+
+    this.virtualScroll = {
+      itemHeight: 60,
+      visibleItems: 0,
+      startIndex: 0,
+      endIndex: 0
+    };
+
+    this.init();
+  }
+
+  async init() {
+    // Apply theme
+    const theme = Storage.getTheme();
+    document.documentElement.setAttribute('data-theme', theme);
+    this.updateThemeButtons(theme);
+
+    // Init modules
+    Stream.init(this.elements.video, (err) => this.handleStreamError(err));
+    Controls.init(this.elements.video, this.elements.videoContainer);
+
+    // Event Listeners
+    this.bindEvents();
+
+    // Load Playlist
+    const savedUrl = Storage.getM3uUrl();
+    if (savedUrl) {
+      this.elements.m3uInput.value = savedUrl;
+      await this.loadPlaylist(savedUrl);
+      
+      // Restore last channel
+      const lastChannel = Storage.getLastChannel();
+      if (lastChannel) {
+        this.playChannel(lastChannel);
+      }
+    } else {
+      // Show settings modal if no URL
+      this.elements.settingsModal.classList.add('show');
+    }
+  }
+
+  bindEvents() {
+    // Advanced Filters Toggle & Logic
+    if (this.elements.filterToggleBtn) {
+      this.elements.filterToggleBtn.addEventListener('click', () => {
+        this.elements.advancedFilterPanel.classList.toggle('hidden');
+      });
+    }
+
+    const applyFilters = () => {
+      this.state.filters.country = this.elements.countryFilter.value;
+      this.state.filters.language = this.elements.languageFilter.value;
+      this.state.filters.category = this.elements.categoryFilter.value;
+      this.filterChannels();
+    };
+
+    if (this.elements.countryFilter) this.elements.countryFilter.addEventListener('change', applyFilters);
+    if (this.elements.languageFilter) this.elements.languageFilter.addEventListener('change', applyFilters);
+    if (this.elements.categoryFilter) this.elements.categoryFilter.addEventListener('change', applyFilters);
+
+    const clearBtn = document.querySelector('#clearFiltersBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        this.elements.countryFilter.value = '';
+        this.elements.languageFilter.value = '';
+        this.elements.categoryFilter.value = '';
+        this.state.filters = { country: '', language: '', category: '' };
+        this.filterChannels();
+      });
+    }
+
+    // Search
+    this.elements.searchInput.addEventListener('input', (e) => {
+      this.state.searchQuery = e.target.value.toLowerCase();
+      this.filterChannels();
+    });
+
+    // Tabs
+    this.elements.tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.elements.tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.state.currentTab = btn.dataset.tab;
+        this.filterChannels();
+      });
+    });
+
+    // Settings Modal
+    this.elements.settingsBtn.addEventListener('click', () => {
+      this.elements.settingsModal.classList.add('show');
+    });
+
+    this.elements.closeModalBtn.addEventListener('click', () => {
+      this.elements.settingsModal.classList.remove('show');
+    });
+
+    this.elements.saveSettingsBtn.addEventListener('click', async () => {
+      const url = this.elements.m3uInput.value.trim();
+      if (url) {
+        Storage.setM3uUrl(url);
+        await this.loadPlaylist(url);
+        this.elements.settingsModal.classList.remove('show');
+      }
+    });
+
+    // Theme Switching
+    this.elements.themeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        Storage.setTheme(theme);
+        this.updateThemeButtons(theme);
+      });
+    });
+
+    // Virtual Scroll
+    this.elements.channelList.addEventListener('scroll', () => {
+      requestAnimationFrame(() => this.renderList());
+    });
+
+    // Resize observer for virtual scroll
+    new ResizeObserver(() => {
+      this.renderList();
+    }).observe(this.elements.channelList);
+
+    // Mobile & Desktop Sidebar Toggle
+    if (this.elements.mobileMenuBtn) {
+      this.elements.mobileMenuBtn.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+          this.toggleSidebar(true);
+        } else {
+          this.elements.sidebar.classList.toggle('collapsed');
+        }
+      });
+    }
+
+    if (this.elements.sidebarOverlay) {
+      this.elements.sidebarOverlay.addEventListener('click', () => {
+        this.toggleSidebar(false);
+      });
+    }
+
+    // Sidebar Resizer
+    const resizer = document.querySelector('.sidebar-resizer');
+    if (resizer) {
+      let isResizing = false;
+
+      resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        document.body.style.cursor = 'col-resize';
+        resizer.classList.add('is-resizing');
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const newWidth = e.clientX;
+        if (newWidth > 220 && newWidth < Math.min(600, window.innerWidth * 0.5)) {
+          this.elements.sidebar.style.width = `${newWidth}px`;
+          this.elements.sidebar.classList.remove('collapsed');
+        } else if (newWidth <= 220) {
+           this.elements.sidebar.classList.add('collapsed');
+           // Optional: Stop resizing when collapsed
+           isResizing = false;
+           document.body.style.cursor = 'default';
+           resizer.classList.remove('is-resizing');
+        }
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isResizing) {
+          isResizing = false;
+          document.body.style.cursor = 'default';
+          resizer.classList.remove('is-resizing');
+        }
+      });
+    }
+
+    // Retry Button
+    if (this.elements.retryBtn) {
+      this.elements.retryBtn.addEventListener('click', () => {
+        if (this.state.activeChannel) {
+          this.playChannel(this.state.activeChannel);
+        }
+      });
+    }
+  }
+
+  handleStreamError(error) {
+    console.error('Stream Error:', error);
+    this.elements.loader.classList.remove('show');
+    this.elements.errorDisplay.style.display = 'flex';
+    this.elements.errorDisplay.style.flexDirection = 'column';
+    this.elements.errorDisplay.style.alignItems = 'center';
+
+    // Show TV Static overlay
+    const staticOverlay = document.getElementById('tvStaticOverlay');
+    if (staticOverlay) staticOverlay.classList.add('show');
+    
+    const errorText = this.elements.errorDisplay.querySelector('.error-text');
+    const errorDesc = this.elements.errorDisplay.querySelector('.error-desc');
+    
+    const cause = error && error.cause ? error.cause : 'network';
+
+    const messages = {
+      notfound: {
+        title: '📡 Signal Topilmadi',
+        desc: 'Kanal serveri javob bermadi (404). Ehtimol, u oflayn yoki URL eskirib qolgan.'
+      },
+      cors: {
+        title: '🔒 Kirish Taqiqlangan',
+        desc: 'Brauzer yoki server CORS/Geoblock xavfsizlik qoidasi bilan bu kanalga kirishni blokladi.'
+      },
+      drm: {
+        title: '🛡 DRM Himoyasi',
+        desc: 'Bu kanal maxsus litsenziya talab qiladigan DRM bilan himoyalangan. Rasmiy ilova talab etiladi.'
+      },
+      unsupported: {
+        title: '🎞 Format Xatosi',
+        desc: 'Kanal formati (codec/container) bu brauzerda qo\'llab quvvatlanmaydi.'
+      },
+      network: {
+        title: '🌐 Ulanish Xatosi',
+        desc: 'Internet ulanishingizni tekshiring yoki kanal tarmoqda mavjud emasligini qarang.'
+      }
+    };
+
+    const msg = messages[cause] || messages.network;
+    if (errorText) errorText.textContent = msg.title;
+    if (errorDesc) errorDesc.textContent = msg.desc;
+  }
+
+  hideStreamError() {
+    this.elements.errorDisplay.style.display = 'none';
+    const staticOverlay = document.getElementById('tvStaticOverlay');
+    if (staticOverlay) staticOverlay.classList.remove('show');
+  }
+
+  toggleSidebar(show) {
+    if (show) {
+      this.elements.sidebar.classList.add('open');
+      this.elements.sidebarOverlay.classList.add('show');
+    } else {
+      this.elements.sidebar.classList.remove('open');
+      this.elements.sidebarOverlay.classList.remove('show');
+    }
+  }
+
+  updateThemeButtons(activeTheme) {
+    this.elements.themeBtns.forEach(btn => {
+      if (btn.dataset.theme === activeTheme) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  async loadPlaylist(url) {
+    this.elements.loader.classList.add('show');
+    try {
+      const channels = await Parser.fetchAndParse(url);
+      this.state.channels = channels;
+      this.populateFilters();
+      this.filterChannels();
+    } catch (error) {
+      alert('Failed to load playlist. Please check the URL and CORS settings.');
+    } finally {
+      this.elements.loader.classList.remove('show');
+    }
+  }
+
+  populateFilters() {
+    if (!this.elements.countryFilter) return;
+    
+    const countries = new Set();
+    const languages = new Set();
+    const categories = new Set();
+    
+    this.state.channels.forEach(ch => {
+      if (ch.countries) ch.countries.forEach(c => countries.add(c));
+      if (ch.languages) ch.languages.forEach(l => languages.add(l));
+      if (ch.group && ch.group !== 'Boshqalar') categories.add(ch.group);
+    });
+    
+    const populateSelect = (selectElem, itemsSet, defaultText) => {
+       const sorted = Array.from(itemsSet).sort();
+       selectElem.innerHTML = `<option value="">${defaultText}</option>` + 
+       sorted.map(item => `<option value="${item}">${item}</option>`).join('');
+    };
+    
+    populateSelect(this.elements.countryFilter, countries, "Davlatlar (Barchasi)");
+    populateSelect(this.elements.languageFilter, languages, "Tillar (Barchasi)");
+    populateSelect(this.elements.categoryFilter, categories, "Janrlar (Barchasi)");
+
+    // Reset current filter state
+    this.state.filters = { country: '', language: '', category: '' };
+  }
+
+  filterChannels() {
+    let filtered = this.state.channels;
+
+    // Filter by Tab
+    if (this.state.currentTab === 'fav') {
+      filtered = filtered.filter(ch => Storage.isFavorite(ch.url));
+    } else if (this.state.currentTab === 'recent') {
+      const recentUrls = Storage.getRecentChannels();
+      // Map to maintain order from most recent
+      filtered = recentUrls.map(url => this.state.channels.find(c => c.url === url)).filter(Boolean);
+    }
+
+    // Filter by Search (name, group, country, language)
+    if (this.state.searchQuery) {
+      const q = this.state.searchQuery;
+      filtered = filtered.filter(ch => 
+        ch.name.toLowerCase().includes(q) ||
+        ch.group.toLowerCase().includes(q) ||
+        (ch.countries && ch.countries.some(c => c.toLowerCase().includes(q))) ||
+        (ch.languages && ch.languages.some(l => l.toLowerCase().includes(q)))
+      );
+    }
+
+    // Filter by Advanced Filters
+    if (this.state.filters.country) {
+       filtered = filtered.filter(ch => ch.countries && ch.countries.includes(this.state.filters.country));
+    }
+    if (this.state.filters.language) {
+       filtered = filtered.filter(ch => ch.languages && ch.languages.includes(this.state.filters.language));
+    }
+    if (this.state.filters.category) {
+       filtered = filtered.filter(ch => ch.group === this.state.filters.category);
+    }
+
+    this.state.filteredChannels = filtered;
+    
+    // Reset scroll
+    this.elements.channelList.scrollTop = 0;
+    this.renderList();
+  }
+
+  renderList() {
+    const { channelList, phantom, content } = this.elements;
+    const { itemHeight } = this.virtualScroll;
+    const totalItems = this.state.filteredChannels.length;
+    
+    // Set phantom height
+    phantom.style.height = `${totalItems * itemHeight}px`;
+
+    // Calculate visible range
+    const scrollTop = channelList.scrollTop;
+    const containerHeight = channelList.clientHeight;
+    
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(
+      totalItems,
+      Math.ceil((scrollTop + containerHeight) / itemHeight) + 5 // Buffer
+    );
+
+    // Only render if changed significantly (optional optimization)
+    // For now, just render
+    
+    content.style.transform = `translateY(${startIndex * itemHeight}px)`;
+    content.innerHTML = '';
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const channel = this.state.filteredChannels[i];
+      if (!channel) continue;
+      
+      const el = this.createChannelElement(channel);
+      content.appendChild(el);
+    }
+  }
+
+  getFallbackLogo(name) {
+    const initial = name ? name.charAt(0).toUpperCase() : 'T';
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="15" fill="hsl(${hue}, 60%, 40%)"/><text x="50" y="53" font-family="Outfit, sans-serif" font-size="45" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">${initial}</text></svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  getTagClass(tag) {
+    const t = tag.toUpperCase();
+    if (t.includes('4K') || t.includes('UHD')) return 'tag-4k';
+    if (t.includes('FHD') || t.includes('1080')) return 'tag-fhd';
+    if (t.includes('HD') || t.includes('720')) return 'tag-hd';
+    return 'tag-default';
+  }
+
+  createChannelElement(channel) {
+    const div = document.createElement('div');
+    div.className = `channel-item ${this.state.activeChannel?.url === channel.url ? 'active' : ''}`;
+    
+    const isFav = Storage.isFavorite(channel.url);
+    const fallbackLogo = this.getFallbackLogo(channel.name);
+    // Filter out edge cases where logo is string "undefined" or empty
+    const logoSrc = (channel.logo && channel.logo !== 'undefined') ? channel.logo : fallbackLogo;
+
+    const tagsHtml = channel.tags && channel.tags.length > 0 
+      ? `<div class="channel-tags">${channel.tags.map(t => `<span class="tag ${this.getTagClass(t)}">${t}</span>`).join('')}</div>`
+      : '';
+
+    div.innerHTML = `
+      <img src="${logoSrc}" class="channel-logo" alt="">
+      <div class="channel-info">
+        <div class="channel-name-row">
+          <span class="channel-name">${channel.name}</span>
+          ${tagsHtml}
+        </div>
+        <div class="channel-group">${channel.group}</div>
+        <div class="meta-tags">
+          ${channel.countries && channel.countries.length ? `<span class="meta-tag">🌎 ${channel.countries.join(', ')}</span>` : ''}
+          ${channel.languages && channel.languages.length ? `<span class="meta-tag">🗣 ${channel.languages[0]}</span>` : ''}
+        </div>
+      </div>
+      <button class="fav-btn ${isFav ? 'active' : ''}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </button>
+    `;
+
+    // Handle image load error securely without inline onerror attribute
+    const imgElement = div.querySelector('img');
+    imgElement.addEventListener('error', function() {
+       if (this.src !== fallbackLogo) {
+           this.src = fallbackLogo;
+       }
+    });
+
+    // Click to play
+    div.addEventListener('click', (e) => {
+      // If clicked on fav button
+      if (e.target.closest('.fav-btn')) {
+        e.stopPropagation();
+        Storage.toggleFavorite(channel.url);
+        // Re-render this item or list
+        if (this.state.currentTab === 'fav') {
+          this.filterChannels();
+        } else {
+          const btn = div.querySelector('.fav-btn');
+          const isNowFav = Storage.isFavorite(channel.url);
+          btn.classList.toggle('active', isNowFav);
+          const svg = btn.querySelector('svg');
+          svg.setAttribute('fill', isNowFav ? 'currentColor' : 'none');
+        }
+        return;
+      }
+      
+      this.playChannel(channel);
+    });
+
+    return div;
+  }
+
+  playChannel(channel) {
+    // If recording is active, auto-save before switching channels
+    if (typeof Controls !== 'undefined') Controls.channelSwitchGuard();
+
+    this.state.activeChannel = channel;
+    Storage.setLastChannel(channel);
+    Storage.addRecentChannel(channel.url); // Track in history
+    
+    // Update active class in list
+    const activeItems = this.elements.content.querySelectorAll('.channel-item.active');
+    activeItems.forEach(el => el.classList.remove('active'));
+    // Note: The clicked item might not be in DOM if we scrolled far, but if we clicked it, it is.
+    // However, we re-render often. The renderList handles the active class check.
+    this.renderList();
+
+    this.elements.channelNameDisplay.textContent = channel.name;
+    
+    // Reset UI
+    this.hideStreamError();
+    this.elements.loader.classList.add('show');
+    
+    Stream.load(channel.url);
+
+    // Close sidebar on mobile after selection
+    if (window.innerWidth <= 768) {
+      this.toggleSidebar(false);
+    }
+  }
+}
+
+// Start App
+window.addEventListener('DOMContentLoaded', () => {
+  new App();
+});

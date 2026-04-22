@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Premium IPTV Player</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <!-- HLS.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Dash.js CDN -->
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  </head>
+  <body>
+    <div class="app-background">
+      <div class="glow glow-1"></div>
+      <div class="glow glow-2"></div>
+      <div class="glow glow-3"></div>
+    </div>
+    <div class="app-container">
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+            IPTV Player
+          </div>
+          <button id="settingsBtn" class="control-btn" title="Sozlamalar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
+        </div>
+
+        <div class="search-container" style="display: flex; gap: 0.5rem;">
+          <input type="text" id="searchInput" class="search-input" placeholder="Qidiruv..." style="flex: 1;" autocomplete="off">
+          <button id="filterToggleBtn" class="control-btn" title="Kengaytirilgan filtrlar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          </button>
+        </div>
+
+        <div id="advancedFilterPanel" class="advanced-filter-panel hidden">
+           <select id="countryFilter" class="filter-select">
+             <option value="">Davlatlar (Barchasi)</option>
+           </select>
+           <select id="languageFilter" class="filter-select">
+             <option value="">Tillar (Barchasi)</option>
+           </select>
+           <select id="categoryFilter" class="filter-select">
+             <option value="">Janrlar (Barchasi)</option>
+           </select>
+           <button id="clearFiltersBtn" class="clear-filters-btn">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+             Filtrlarni tozalash
+           </button>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="all">Barchasi</button>
+          <button class="tab-btn" data-tab="fav">Sevimlilar</button>
+          <button class="tab-btn" data-tab="recent">Tarix</button>
+        </div>
+
+        <div class="channel-list-container">
+          <div class="channel-list-phantom"></div>
+          <div class="channel-list-content">
+            <!-- Channels will be injected here via JS -->
+          </div>
+        </div>
+      </aside>
+      
+      <!-- Resizer Handle -->
+      <div class="sidebar-resizer" title="Kengaytirish/Qisqartirish"></div>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <button id="mobileMenuBtn" class="mobile-menu-btn fixed-toggle-btn" title="Menyuni ochish/yopish">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="video-container">
+          <video id="mainVideo" playsinline webkit-playsinline></video>
+          <div class="loader"></div>
+          <div id="tvStaticOverlay" class="tv-static-overlay"></div>
+          <div id="errorDisplay" class="error-display" style="display: none;">
+            <div id="errorIcon" class="error-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline><line x1="8" y1="12" x2="16" y2="16"></line><line x1="8" y1="16" x2="16" y2="12"></line></svg>
+            </div>
+            <div class="error-text">Stream Unavailable</div>
+            <div class="error-desc" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; max-width: 300px; line-height: 1.4;">Kanal bilan ulanish o'rnatilmadi.</div>
+            <button id="retryBtn" class="primary-btn">Qayta urinish (Retry)</button>
+          </div>
+          
+          <!-- Custom Controls -->
+          <div class="controls-overlay">
+            <!-- Recording Overlay -->
+            <div id="recOverlay" class="rec-overlay hidden">
+               <div class="rec-dot"></div>
+               <span id="recTimer">00:00</span>
+            </div>
+
+            <div id="channelNameDisplay" style="color: white; font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+              Kanal tanlanmagan
+            </div>
+            
+            <div class="controls-row">
+              <div class="controls-left">
+                <button id="playBtn" class="control-btn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </button>
+                
+                <div class="volume-wrapper">
+                  <div class="controls-left">
+                    <button id="volumeBtn" class="control-btn">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    </button>
+                    <div class="volume-container">
+                      <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="1">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="controls-right">
+                <!-- Quality Selector placeholder -->
+                <!-- <div class="quality-selector">
+                  <button class="control-btn">HD</button>
+                </div> -->
+                
+                <!-- Record Pause Button (only visible while recording) -->
+                <button id="recPauseBtn" class="control-btn rec-pause-btn" title="Yozishni to'xtatish / Pause Record" style="display:none;">
+                  <svg id="recPauseIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                </button>
+
+                <!-- Record Button -->
+                <button id="recordBtn" class="control-btn" title="Yozib olish / Record">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6" fill="currentColor"></circle></svg>
+                </button>
+                
+                <button id="pipBtn" class="control-btn" title="Picture in Picture">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="10" width="10" height="7" rx="1"></rect><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
+                </button>
+                
+                <button id="fullscreenBtn" class="control-btn" title="To'liq ekran">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Sozlamalar</div>
+          <button id="closeModalBtn" class="control-btn" style="color: var(--text-color)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">M3U Playlist URL</label>
+          <input type="text" id="m3uInput" class="url-input" placeholder="https://example.com/playlist.m3u">
+          <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+            Sinov uchun: https://iptv-org.github.io/iptv/index.m3u
+          </small>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Mavzu (Theme)</label>
+          <div class="theme-options">
+            <button class="theme-btn active" data-theme="dark">Qorong'u</button>
+            <button class="theme-btn" data-theme="light">Yorug'</button>
+            <button class="theme-btn" data-theme="glass">Shisha</button>
+          </div>
+        </div>
+
+        <button id="saveSettingsBtn" class="primary-btn">Saqlash</button>
+      </div>
+    </div>
+
+    <script src="storage.js"></script>
+    <script src="parser.js"></script>
+    <script src="stream.js"></script>
+    <script src="controls.js"></script>
+    <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('Service Worker Registered'))
+          .catch((err) => console.error('Service Worker Error:', err));
+      }
+    </script>
+  </body>
+</html>
