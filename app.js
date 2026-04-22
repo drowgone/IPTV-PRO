@@ -446,7 +446,7 @@ class App {
     
     // Apply dynamic column count to grid container
     if (isGrid) {
-      content.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+      content.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
     } else {
       content.style.gridTemplateColumns = '';
     }
