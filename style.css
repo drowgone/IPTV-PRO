@@ -409,6 +409,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
 }
 
 .channel-name-row {
@@ -452,11 +453,14 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   width: 100%;
+  max-width: 100%;
 }
 
 .channel-list-content.grid-view .channel-name {
   width: 100%;
+  max-width: 100%;
   text-align: center;
+  display: block;
 }
 
 .channel-list-content.grid-view .channel-tags {
