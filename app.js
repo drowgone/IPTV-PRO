@@ -506,7 +506,7 @@ class App {
       : '';
 
     div.innerHTML = `
-      <img src="${logoSrc}" class="channel-logo" alt="">
+      <img src="${logoSrc}" class="channel-logo loading" alt="" loading="lazy">
       <div class="channel-info">
         <div class="channel-name-row">
           <span class="channel-name">${channel.name}</span>
@@ -523,9 +523,15 @@ class App {
       </button>
     `;
 
-    // Handle image load error securely without inline onerror attribute
+    // Handle image load / error
     const imgElement = div.querySelector('img');
+    
+    imgElement.addEventListener('load', function() {
+        this.classList.remove('loading');
+    });
+
     imgElement.addEventListener('error', function() {
+       this.classList.remove('loading');
        if (this.src !== fallbackLogo) {
            this.src = fallbackLogo;
        }
