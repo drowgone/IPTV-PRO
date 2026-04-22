@@ -44,22 +44,46 @@ const Parser = {
         
         // Clean name by removing tags, countries, and categories
         let cleanName = rawName;
+        let extractedPrefixes = [];
         
-        // 1. Remove bracketed parts like (RU), [HD]
+        // 1. Remove bracketed parts like (RU), [HD]. (tags are already extracted above)
         cleanName = cleanName.replace(/[\(\[][^)\]]+[\)\]]/g, '').trim(); 
         
-        // 2. Remove known standard geo/category prefixes followed by |, :, or -
-        const geoPrefixes = 'UK|USA?|RU|TR|FR|DE|IT|ES|EN|PT|NL|PL|GR|RO|AR|BE|CH|AT|AU|CA|IN|PK|BD|IR|IL|CZ|SK|HU|BG|RS|HR|SI|MK|AL|VIP|VOD|ARABIC|LATAM|AFRICA|ASIA|SPORTS?|MOVIES?|NEWS|KIDS|MUSIC|XXX|LOCAL|INFO';
-        const geoRegex = new RegExp(`^(?:${geoPrefixes})\\s*[:\\|\\-]\\s*`, 'i');
-        cleanName = cleanName.replace(geoRegex, '');
-        
-        // 3. Remove arbitrary words separated by pipe "|", pipe is mostly an IPTV delimiter
-        cleanName = cleanName.replace(/^[A-Za-z0-9\s]{2,12}\s*\|\s*/, '');
-        
-        // 4. Remove fallback strict 2 uppercase letters joined by colon or hyphen (e.g., RU: Perviy)
-        cleanName = cleanName.replace(/^(?!TV\b)[A-Z]{2}\s*[:\-]\s*/, '');
+        // 2. Iteratively extract prefixes
+        let loop = true;
+        while(loop) {
+            let matched = false;
+            
+            // Extract from pipes (e.g. "TURKEY | Channel")
+            const mPipe = cleanName.match(/^([a-zA-Z0-9\s]{2,15})\s*\|\s*/);
+            if (mPipe) {
+                extractedPrefixes.push(mPipe[1].trim().toUpperCase());
+                cleanName = cleanName.substring(mPipe[0].length).trim();
+                matched = true;
+            }
+            
+            // Extract from explicit categories/countries with colon or hyphen
+            const geoPrefixes = 'UK|US|USA|RU|TR|FR|DE|IT|ES|EN|PT|NL|PL|GR|RO|AR|BE|CH|AT|AU|CA|IN|PK|BD|IR|IL|CZ|SK|HU|BG|RS|HR|SI|MK|AL|VIP|VOD|ARABIC|LATAM|AFRICA|ASIA|SPORT|SPORTS|MOVIES|NEWS|KIDS|MUSIC|XXX|LOCAL|INFO|TURKEY|RUSSIA|GERMANY|FRANCE|SPAIN|ITALY|POLAND|INDIA|PAKISTAN|IRAN';
+            const geoRegex = new RegExp(`^(${geoPrefixes})\\s*[:\\-]\\s*`, 'i');
+            const mGeo = cleanName.match(geoRegex);
+            if (!matched && mGeo) {
+                extractedPrefixes.push(mGeo[1].trim().toUpperCase());
+                cleanName = cleanName.substring(mGeo[0].length).trim();
+                matched = true;
+            }
 
-        // 5. Clean leftover trailing and leading junk
+            // Extract strict 2-letter codes with colon or hyphen (e.g. RU: Kanal)
+            const mStrict = cleanName.match(/^(?!TV\b)([A-Z]{2})\s*[:\-]\s*/);
+            if (!matched && mStrict) {
+                extractedPrefixes.push(mStrict[1].trim().toUpperCase());
+                cleanName = cleanName.substring(mStrict[0].length).trim();
+                matched = true;
+            }
+
+            loop = matched;
+        }
+
+        // Clean leftover trailing and leading junk
         cleanName = cleanName.replace(/^[\s\-\|\:~_]+|[\s\-\|\:~_]+$/g, '').trim();
         cleanName = cleanName || rawName;
         
@@ -77,6 +101,12 @@ const Parser = {
         const rawLanguage = languageMatch ? languageMatch[1] : '';
         const countries = rawCountry ? rawCountry.split(/[;,]/).map(c => c.trim()).filter(Boolean) : [];
         const languages = rawLanguage ? rawLanguage.split(/[;,]/).map(l => l.trim()).filter(Boolean) : [];
+
+        // Mix extracted prefixes into countries and tags so user can filter them
+        extractedPrefixes.forEach(pref => {
+            if (!countries.includes(pref)) countries.push(pref);
+            if (!tags.includes(pref)) tags.unshift(pref); // Show it visually on card as well
+        });
 
         currentItem = {
           name: cleanName || rawName,
