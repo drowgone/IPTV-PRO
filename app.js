@@ -5,7 +5,6 @@ class App {
       filteredChannels: [],
       activeChannel: null,
       currentTab: 'all', // 'all' or 'fav'
-      viewMode: Storage.get('iptv_view_mode', 'list'),
       isLoading: false,
       searchQuery: '',
       filters: {
@@ -46,12 +45,13 @@ class App {
       clearFavBtn: document.querySelector('#clearFavBtn'),
       favCountLabel: document.querySelector('#favCountLabel'),
       favToast: document.querySelector('#favToast'),
-      viewToggleBtn: document.querySelector('#viewToggleBtn'),
-      viewIconList: document.querySelector('#viewIconList'),
-      viewIconGrid: document.querySelector('#viewIconGrid'),
       countAll: document.querySelector('#count-all'),
       countFav: document.querySelector('#count-fav'),
       countRecent: document.querySelector('#count-recent')
+    };
+
+    this.virtualScroll = {
+      itemHeight: 74, // Approximate height of channel-item (68px + margins)
     };
 
     this.init();
@@ -62,9 +62,6 @@ class App {
     const theme = Storage.getTheme();
     document.documentElement.setAttribute('data-theme', theme);
     this.updateThemeButtons(theme);
-
-    // Apply View Mode
-    this.applyViewMode();
 
     // Init modules
     Stream.init(this.elements.video, (err) => this.handleStreamError(err));
@@ -135,16 +132,6 @@ class App {
         this.filterChannels();
       });
     });
-
-    // View Toggle
-    if (this.elements.viewToggleBtn) {
-      this.elements.viewToggleBtn.addEventListener('click', () => {
-        this.state.viewMode = this.state.viewMode === 'list' ? 'grid' : 'list';
-        Storage.set('iptv_view_mode', this.state.viewMode);
-        this.applyViewMode();
-        this.renderList();
-      });
-    }
 
     // Settings Modal
     this.elements.settingsBtn.addEventListener('click', () => {
@@ -330,18 +317,6 @@ class App {
     });
   }
 
-  applyViewMode() {
-    if (this.state.viewMode === 'grid') {
-      this.elements.content.classList.add('grid-view');
-      if (this.elements.viewIconGrid) this.elements.viewIconGrid.style.display = 'none';
-      if (this.elements.viewIconList) this.elements.viewIconList.style.display = 'block';
-    } else {
-      this.elements.content.classList.remove('grid-view');
-      if (this.elements.viewIconGrid) this.elements.viewIconGrid.style.display = 'block';
-      if (this.elements.viewIconList) this.elements.viewIconList.style.display = 'none';
-    }
-  }
-
   updateTabCounts() {
     if (this.elements.countAll) this.elements.countAll.textContent = this.state.channels.length;
     if (this.elements.countFav) this.elements.countFav.textContent = Storage.getFavorites().length;
@@ -434,43 +409,23 @@ class App {
   renderList() {
     const { channelList, phantom, content } = this.elements;
     
-    const isGrid = this.state.viewMode === 'grid';
-    const containerWidth = channelList.clientWidth || 260; // fallback
-    
-    // Dynamically calculate columns based on width
-    // Sidebar padding is roughly 32px (1rem each side + scrollbar)
-    // Min card width ~ 135px + gap.
-    const calculatedColumns = Math.max(1, Math.floor((containerWidth - 24) / 135));
-    const columns = isGrid ? calculatedColumns : 1;
-    const itemHeight = isGrid ? 190 : 76; // 180px height + 10px gap vs 68px + 8px margin
-    
-    // Apply dynamic column count to grid container
-    if (isGrid) {
-      content.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
-    } else {
-      content.style.gridTemplateColumns = '';
-    }
-
+    const itemHeight = this.virtualScroll.itemHeight;
     const totalItems = this.state.filteredChannels.length;
-    const totalRows = Math.ceil(totalItems / columns);
     
     // Set phantom height
-    phantom.style.height = `${totalRows * itemHeight}px`;
+    phantom.style.height = `${totalItems * itemHeight}px`;
 
     // Calculate visible range
     const scrollTop = channelList.scrollTop;
     const containerHeight = channelList.clientHeight;
     
-    const startRow = Math.floor(scrollTop / itemHeight);
-    const endRow = Math.min(
-      totalRows,
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(
+      totalItems,
       Math.ceil((scrollTop + containerHeight) / itemHeight) + 3 // Buffer rows
     );
 
-    const startIndex = startRow * columns;
-    const endIndex = Math.min(totalItems, endRow * columns);
-
-    content.style.transform = `translateY(${startRow * itemHeight}px)`;
+    content.style.transform = `translateY(${startIndex * itemHeight}px)`;
     content.innerHTML = '';
 
     for (let i = startIndex; i < endIndex; i++) {

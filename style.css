@@ -287,12 +287,6 @@ body {
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
 }
 
-.view-toggle-btn {
-  width: 32px;
-  height: 32px;
-  margin-left: 0.5rem;
-  flex-shrink: 0;
-}
 
 .tab-btn::after {
   content: '';
@@ -420,69 +414,6 @@ body {
   overflow: hidden;
 }
 
-/* ================================= */
-/* Grid View Modifiers               */
-/* ================================= */
-.channel-list-content.grid-view {
-  display: grid;
-  /* dynamically overridden in JS depending on container width */
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-  width: auto;
-}
-
-.channel-list-content.grid-view .channel-item {
-  flex-direction: column;
-  height: 180px; /* Taller fixed height for all required info */
-  padding: 0.75rem;
-  text-align: center;
-  justify-content: center;
-  margin-bottom: 0;
-  position: relative;
-  min-width: 0; /* Prevents text from breaking out of grid columns */
-  width: 100%;
-}
-
-.channel-list-content.grid-view .channel-logo {
-  width: 50px;
-  height: 50px;
-  margin-bottom: 0.2rem;
-}
-
-.channel-list-content.grid-view .channel-name-row {
-  flex-direction: column;
-  gap: 0.2rem;
-  width: 100%;
-  max-width: 100%;
-}
-
-.channel-list-content.grid-view .channel-name {
-  width: 100%;
-  max-width: 100%;
-  text-align: center;
-  display: block;
-}
-
-.channel-list-content.grid-view .channel-tags {
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.channel-list-content.grid-view .channel-group {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  margin-bottom: 0.2rem;
-}
-
-.channel-list-content.grid-view .fav-btn {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  background: var(--bg-color);
-}
-/* ================================= */
 
 .channel-name {
   font-weight: 600;
