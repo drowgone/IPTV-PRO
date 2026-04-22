@@ -451,6 +451,12 @@ body {
 .channel-list-content.grid-view .channel-name-row {
   flex-direction: column;
   gap: 0.2rem;
+  width: 100%;
+}
+
+.channel-list-content.grid-view .channel-name {
+  width: 100%;
+  text-align: center;
 }
 
 .channel-list-content.grid-view .channel-tags {
@@ -481,6 +487,8 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-color);
+  min-width: 0;
+  flex: 1;
 }
 
 .channel-tags {
