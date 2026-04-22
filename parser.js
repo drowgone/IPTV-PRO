@@ -51,32 +51,31 @@ const Parser = {
         
         // 2. Iteratively extract prefixes
         let loop = true;
+        const countryCodes = 'UK|US|USA|RU|TR|FR|DE|IT|ES|EN|PT|NL|PL|GR|RO|AR|BE|CH|AT|AU|CA|IN|PK|BD|IR|IL|CZ|SK|HU|BG|RS|HR|SI|MK|AL|KZ|UZ|UA|AZ|GE|AM|EE|LV|LT|FI|SE|NO|DK|IE|JP|KR|CN|TW|VN|TH|PH|MY|ID|SG|BR|MX|CL|CO|PE|VE|EC|PE|UY|PY|BO|CU|DO|PR|GT|HN|SV|NI|CR|PA|JM|TT|ZA|NG|KE|GH|EG|DZ|MA|TN|LY|SD|ET|NG|TZ|UG|ZM|ZW';
+        const countryNames = 'UNITED KINGDOM|UNITED STATES|USA|RUSSIA|TURKEY|FRANCE|GERMANY|ITALY|SPAIN|PORTUGAL|NETHERLANDS|POLAND|GREECE|ROMANIA|ARGENTINA|BELGIUM|SWITZERLAND|AUSTRIA|AUSTRALIA|CANADA|INDIA|PAKISTAN|BANGLADESH|IRAN|ISRAEL|CZECH|SLOVAKIA|HUNGARY|BULGARIA|SERBIA|CROATIA|SLOVENIA|MACEDONIA|ALBANIA|UZBEKISTAN|KAZAKHSTAN|UKRAINE|AZERBAIJAN|GEORGIA|ARMENIA|ESTONIA|LATVIA|LITHUANIA|FINLAND|SWEDEN|NORWAY|DENMARK|IRELAND|JAPAN|KOREA|CHINA|TAIWAN|VIETNAM|THAILAND|PHILIPPINES|MALAYSIA|INDONESIA|SINGAPORE|BRAZIL|MEXICO|CHILE|COLOMBIA|PERU|VENEZUELA|ECUADOR|URUGUAY|PARAGUAY|BOLIVIA|CUBA|DOMINICAN REPUBLIC|PUERTO RICO|GUATEMALA|HONDURAS|EL SALVADOR|NICARAGUA|COSTA RICA|PANAMA|JAMAICA|TRINIDAD|SOUTH AFRICA|NIGERIA|KENYA|GHANA|EGYPT|ALGERIA|MOROCCO|TUNISIA|LIBYA|SUDAN|ETHIOPIA|TANZANIA|UGANDA|ZAMBIA|ZIMBABWE';
+        const categories = 'VIP|VOD|ARABIC|LATAM|AFRICA|ASIA|EUROPE|BALEARES|CANARY|SOUTH|NORTH|EAST|WEST|CENTRAL|SPORT|SPORTS|MOVIES|CINEMA|FILM|NEWS|KIDS|CHILDREN|MUSIC|XXX|ADULT|LOCAL|INFO|HD|FHD|UHD|4K|8K|SD|HQ|RAW|HEVC|H265|MPEG|RADIO|TV|WEB|LIVE';
+        
+        const allPrefixes = `${countryCodes}|${countryNames}|${categories}`;
+        
         while(loop) {
             let matched = false;
             
-            // Extract from pipes (e.g. "TURKEY | Channel")
-            const mPipe = cleanName.match(/^([a-zA-Z0-9\s]{2,15})\s*\|\s*/);
-            if (mPipe) {
-                extractedPrefixes.push(mPipe[1].trim().toUpperCase());
-                cleanName = cleanName.substring(mPipe[0].length).trim();
+            // Extract from pipes, colons, or dashes (e.g. "UK | BBC" or "GERMANY: RTL")
+            const sepRegex = new RegExp(`^(${allPrefixes}|[A-Z]{2,3})\\s*[:\\|\\-]\\s*`, 'i');
+            const mSep = cleanName.match(sepRegex);
+            if (mSep) {
+                extractedPrefixes.push(mSep[1].trim().toUpperCase());
+                cleanName = cleanName.substring(mSep[0].length).trim();
                 matched = true;
             }
             
-            // Extract massive list of known countries/categories with ANY separator (space, colon, hyphen, etc)
-            const geoFull = 'AFGHANISTAN|ALBANIA|ALGERIA|ANDORRA|ANGOLA|ARGENTINA|ARMENIA|AUSTRALIA|AUSTRIA|AZERBAIJAN|BAHAMAS|BAHRAIN|BANGLADESH|BARBADOS|BELARUS|BELGIUM|BOLIVIA|BOSNIA|BRAZIL|BULGARIA|CAMBODIA|CAMEROON|CANADA|CHILE|CHINA|COLOMBIA|COSTA RICA|CROATIA|CUBA|CYPRUS|CZECHIA|CZECH|DENMARK|DOMINICAN|ECUADOR|EGYPT|EL SALVADOR|ESTONIA|ETHIOPIA|FINLAND|FRANCE|GEORGIA|GERMANY|GHANA|GREECE|GUATEMALA|HAITI|HONDURAS|HONG KONG|HUNGARY|ICELAND|INDIA|INDONESIA|IRAN|IRAQ|IRELAND|ISRAEL|ITALY|JAMAICA|JAPAN|JORDAN|KAZAKHSTAN|KENYA|KOREA|KOSOVO|KUWAIT|LATVIA|LEBANON|LIBYA|LITHUANIA|LUXEMBOURG|MACEDONIA|MALAYSIA|MALI|MALTA|MEXICO|MOLDOVA|MONACO|MONGOLIA|MONTENEGRO|MOROCCO|MYANMAR|NEPAL|NETHERLANDS|NEW ZEALAND|NICARAGUA|NIGERIA|NORWAY|OMAN|PAKISTAN|PALESTINE|PANAMA|PARAGUAY|PERU|PHILIPPINES|POLAND|PORTUGAL|QATAR|ROMANIA|RUSSIA|SAUDI ARABIA|SENEGAL|SERBIA|SINGAPORE|SLOVAKIA|SLOVENIA|SOMALIA|SOUTH AFRICA|SPAIN|SRI LANKA|SUDAN|SWEDEN|SWITZERLAND|SYRIA|TAIWAN|TAJIKISTAN|TANZANIA|THAILAND|TUNISIA|TURKEY|UGANDA|UKRAINE|UNITED ARAB EMIRATES|UAE|UK|USA|UNITED KINGDOM|UNITED STATES|URUGUAY|UZBEKISTAN|VENEZUELA|VIETNAM|YEMEN|ZAMBIA|ZIMBABWE|AF|AL|DZ|AR|AM|AU|AT|AZ|BH|BD|BY|BE|BO|BA|BR|BG|CA|CL|CN|CO|CR|HR|CU|CY|CZ|DK|DO|EC|EG|SV|EE|ET|FI|FR|GE|DE|GH|GR|GT|HT|HN|HK|HU|IS|IN|ID|IR|IQ|IE|IL|IT|JM|JP|JO|KZ|KE|KR|KW|LV|LB|LY|LT|LU|MK|MY|ML|MT|MX|MD|MC|MN|ME|MA|MM|NP|NL|NZ|NI|NG|NO|OM|PK|PS|PA|PY|PE|PH|PL|PT|QA|RO|RU|SA|SN|RS|SG|SK|SI|SO|ZA|ES|LK|SD|SE|CH|SY|TW|TJ|TZ|TH|TN|TR|UG|UA|AE|UK|US|UY|UZ|VE|VN|YE|ZM|ZW|EN|AFRICA|AMERICA|ARABIC|ASIA|BALKAN|CARIBBEAN|EUROPE|EXYU|KURDISH|LATAM|SCANDINAVIA|SPORT|SPORTS|MOVIES|NEWS|KIDS|MUSIC|XXX|LOCAL|INFO|VOD|VIP|24\\/7';
-            const geoRegex = new RegExp(`^(${geoFull})\\b[\\s\\|\\:\\-~_]+`, 'i');
-            const mGeo = cleanName.match(geoRegex);
-            if (!matched && mGeo) {
-                extractedPrefixes.push(mGeo[1].trim().toUpperCase());
-                cleanName = cleanName.substring(mGeo[0].length).trim();
-                matched = true;
-            }
-
-            // Extract strict 2-3 uppercase codes with explicit punctuation like RU: or TR-
-            const mStrict = cleanName.match(/^(?!TV\b)([A-Z]{2,3})\s*[:\-]\s*/);
-            if (!matched && mStrict) {
-                extractedPrefixes.push(mStrict[1].trim().toUpperCase());
-                cleanName = cleanName.substring(mStrict[0].length).trim();
+            // Extract from names where prefix is just followed by a space (e.g. "GERMANY RTL" or "UK BBC")
+            // Limited to longer country names to avoid false positives with common short words
+            const spaceRegex = new RegExp(`^(${countryNames}|VIP|VOD|ARABIC|LATAM|AFRICA)\\s+`, 'i');
+            const mSpace = cleanName.match(spaceRegex);
+            if (!matched && mSpace) {
+                extractedPrefixes.push(mSpace[1].trim().toUpperCase());
+                cleanName = cleanName.substring(mSpace[0].length).trim();
                 matched = true;
             }
 
