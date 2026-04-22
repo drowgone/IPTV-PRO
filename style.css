@@ -241,6 +241,13 @@ body {
   display: flex;
   flex: 1;
   gap: 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-btn {
@@ -258,6 +265,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tab-count {
@@ -415,14 +424,15 @@ body {
 /* ================================= */
 .channel-list-content.grid-view {
   display: grid;
+  /* dynamically overridden in JS depending on container width */
   grid-template-columns: repeat(2, 1fr);
   gap: 0.6rem;
 }
 
 .channel-list-content.grid-view .channel-item {
   flex-direction: column;
-  height: 140px; /* Fixed height for grid item */
-  padding: 1rem;
+  height: 180px; /* Taller fixed height for all required info */
+  padding: 0.75rem;
   text-align: center;
   justify-content: center;
   margin-bottom: 0;
@@ -450,6 +460,7 @@ body {
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
+  margin-bottom: 0.2rem;
 }
 
 .channel-list-content.grid-view .fav-btn {

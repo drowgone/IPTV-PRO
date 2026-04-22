@@ -435,9 +435,22 @@ class App {
     const { channelList, phantom, content } = this.elements;
     
     const isGrid = this.state.viewMode === 'grid';
-    const columns = isGrid ? 2 : 1;
-    const itemHeight = isGrid ? 150 : 76; // Approx spacing calculation (height + gap)
+    const containerWidth = channelList.clientWidth || 260; // fallback
     
+    // Dynamically calculate columns based on width
+    // Sidebar padding is roughly 32px (1rem each side + scrollbar)
+    // Min card width ~ 135px + gap.
+    const calculatedColumns = Math.max(1, Math.floor((containerWidth - 24) / 135));
+    const columns = isGrid ? calculatedColumns : 1;
+    const itemHeight = isGrid ? 190 : 76; // 180px height + 10px gap vs 68px + 8px margin
+    
+    // Apply dynamic column count to grid container
+    if (isGrid) {
+      content.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    } else {
+      content.style.gridTemplateColumns = '';
+    }
+
     const totalItems = this.state.filteredChannels.length;
     const totalRows = Math.ceil(totalItems / columns);
     
