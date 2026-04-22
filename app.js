@@ -47,14 +47,47 @@ class App {
       favToast: document.querySelector('#favToast'),
       countAll: document.querySelector('#count-all'),
       countFav: document.querySelector('#count-fav'),
-      countRecent: document.querySelector('#count-recent')
+      countRecent: document.querySelector('#count-recent'),
+      alphabetIndicator: document.querySelector('#alphabetIndicator')
     };
+
+    this.scrollTimeout = null;
 
     this.virtualScroll = {
       itemHeight: 74, // Approximate height of channel-item (68px + margins)
     };
 
+    // Scroll Event for Alphabet Indicator
+    this.elements.channelList.addEventListener('scroll', () => {
+      this.renderList();
+      this.handleScrollIndicator();
+    });
+
     this.init();
+  }
+
+  handleScrollIndicator() {
+    const { alphabetIndicator } = this.elements;
+    if (!alphabetIndicator || this.state.filteredChannels.length === 0) return;
+
+    // Show indicator
+    alphabetIndicator.classList.add('show');
+
+    // Get current first visible item
+    const scrollTop = this.elements.channelList.scrollTop;
+    const startIndex = Math.floor(scrollTop / this.virtualScroll.itemHeight);
+    const channel = this.state.filteredChannels[startIndex];
+    
+    if (channel && channel.name) {
+      const firstLetter = channel.name.charAt(0).toUpperCase();
+      alphabetIndicator.textContent = firstLetter;
+    }
+
+    // Hide after inactivity
+    clearTimeout(this.scrollTimeout);
+    this.scrollTimeout = setTimeout(() => {
+      alphabetIndicator.classList.remove('show');
+    }, 800);
   }
 
   async init() {
@@ -425,15 +458,18 @@ class App {
       Math.ceil((scrollTop + containerHeight) / itemHeight) + 3 // Buffer rows
     );
 
+    // Update content position
     content.style.transform = `translateY(${startIndex * itemHeight}px)`;
+    
+    // Only re-render items if start index changed (optional but good)
     content.innerHTML = '';
 
     for (let i = startIndex; i < endIndex; i++) {
-      const channel = this.state.filteredChannels[i];
-      if (!channel) continue;
-      
-      const el = this.createChannelElement(channel);
-      content.appendChild(el);
+        const channel = this.state.filteredChannels[i];
+        if (!channel) continue;
+        
+        const el = this.createChannelElement(channel);
+        content.appendChild(el);
     }
   }
 

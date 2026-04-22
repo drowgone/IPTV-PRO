@@ -340,6 +340,36 @@ body {
   padding: 0 1rem;
 }
 
+.alphabet-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  text-shadow: 0 0 20px var(--primary-glow);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.alphabet-indicator.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
 .channel-list-phantom {
   position: absolute;
   left: 0;
