@@ -5,6 +5,7 @@ class App {
       filteredChannels: [],
       activeChannel: null,
       currentTab: 'all', // 'all' or 'fav'
+      viewMode: Storage.get('iptv_view_mode', 'list'),
       isLoading: false,
       searchQuery: '',
       filters: {
@@ -44,14 +45,13 @@ class App {
       importFavFile: document.querySelector('#importFavFile'),
       clearFavBtn: document.querySelector('#clearFavBtn'),
       favCountLabel: document.querySelector('#favCountLabel'),
-      favToast: document.querySelector('#favToast')
-    };
-
-    this.virtualScroll = {
-      itemHeight: 60,
-      visibleItems: 0,
-      startIndex: 0,
-      endIndex: 0
+      favToast: document.querySelector('#favToast'),
+      viewToggleBtn: document.querySelector('#viewToggleBtn'),
+      viewIconList: document.querySelector('#viewIconList'),
+      viewIconGrid: document.querySelector('#viewIconGrid'),
+      countAll: document.querySelector('#count-all'),
+      countFav: document.querySelector('#count-fav'),
+      countRecent: document.querySelector('#count-recent')
     };
 
     this.init();
@@ -62,6 +62,9 @@ class App {
     const theme = Storage.getTheme();
     document.documentElement.setAttribute('data-theme', theme);
     this.updateThemeButtons(theme);
+
+    // Apply View Mode
+    this.applyViewMode();
 
     // Init modules
     Stream.init(this.elements.video, (err) => this.handleStreamError(err));
@@ -132,6 +135,16 @@ class App {
         this.filterChannels();
       });
     });
+
+    // View Toggle
+    if (this.elements.viewToggleBtn) {
+      this.elements.viewToggleBtn.addEventListener('click', () => {
+        this.state.viewMode = this.state.viewMode === 'list' ? 'grid' : 'list';
+        Storage.set('iptv_view_mode', this.state.viewMode);
+        this.applyViewMode();
+        this.renderList();
+      });
+    }
 
     // Settings Modal
     this.elements.settingsBtn.addEventListener('click', () => {
@@ -317,6 +330,24 @@ class App {
     });
   }
 
+  applyViewMode() {
+    if (this.state.viewMode === 'grid') {
+      this.elements.content.classList.add('grid-view');
+      if (this.elements.viewIconGrid) this.elements.viewIconGrid.style.display = 'none';
+      if (this.elements.viewIconList) this.elements.viewIconList.style.display = 'block';
+    } else {
+      this.elements.content.classList.remove('grid-view');
+      if (this.elements.viewIconGrid) this.elements.viewIconGrid.style.display = 'block';
+      if (this.elements.viewIconList) this.elements.viewIconList.style.display = 'none';
+    }
+  }
+
+  updateTabCounts() {
+    if (this.elements.countAll) this.elements.countAll.textContent = this.state.channels.length;
+    if (this.elements.countFav) this.elements.countFav.textContent = Storage.getFavorites().length;
+    if (this.elements.countRecent) this.elements.countRecent.textContent = Storage.getRecentChannels().length;
+  }
+
   async loadPlaylist(url) {
     this.elements.loader.classList.add('show');
     try {
@@ -393,6 +424,7 @@ class App {
     }
 
     this.state.filteredChannels = filtered;
+    this.updateTabCounts();
     
     // Reset scroll
     this.elements.channelList.scrollTop = 0;
@@ -401,26 +433,31 @@ class App {
 
   renderList() {
     const { channelList, phantom, content } = this.elements;
-    const { itemHeight } = this.virtualScroll;
+    
+    const isGrid = this.state.viewMode === 'grid';
+    const columns = isGrid ? 2 : 1;
+    const itemHeight = isGrid ? 150 : 76; // Approx spacing calculation (height + gap)
+    
     const totalItems = this.state.filteredChannels.length;
+    const totalRows = Math.ceil(totalItems / columns);
     
     // Set phantom height
-    phantom.style.height = `${totalItems * itemHeight}px`;
+    phantom.style.height = `${totalRows * itemHeight}px`;
 
     // Calculate visible range
     const scrollTop = channelList.scrollTop;
     const containerHeight = channelList.clientHeight;
     
-    const startIndex = Math.floor(scrollTop / itemHeight);
-    const endIndex = Math.min(
-      totalItems,
-      Math.ceil((scrollTop + containerHeight) / itemHeight) + 5 // Buffer
+    const startRow = Math.floor(scrollTop / itemHeight);
+    const endRow = Math.min(
+      totalRows,
+      Math.ceil((scrollTop + containerHeight) / itemHeight) + 3 // Buffer rows
     );
 
-    // Only render if changed significantly (optional optimization)
-    // For now, just render
-    
-    content.style.transform = `translateY(${startIndex * itemHeight}px)`;
+    const startIndex = startRow * columns;
+    const endIndex = Math.min(totalItems, endRow * columns);
+
+    content.style.transform = `translateY(${startRow * itemHeight}px)`;
     content.innerHTML = '';
 
     for (let i = startIndex; i < endIndex; i++) {
@@ -522,6 +559,7 @@ class App {
     this.state.activeChannel = channel;
     Storage.setLastChannel(channel);
     Storage.addRecentChannel(channel.url); // Track in history
+    this.updateTabCounts(); // Update recent count visually
     
     // Update active class in list
     const activeItems = this.elements.content.querySelectorAll('.channel-item.active');
@@ -612,6 +650,7 @@ class App {
 
         const added = merged.length - existing.length;
         this.updateFavCount();
+        this.updateTabCounts();
         this.showFavToast(`✅ ${added} ta yangi kanal import qilindi! (Jami: ${merged.length})`);
 
         // Refresh list if on favorites tab
@@ -637,6 +676,7 @@ class App {
 
     Storage.set(Storage.KEYS.FAVORITES, []);
     this.updateFavCount();
+    this.updateTabCounts();
     this.showFavToast('🗑️ Barcha sevimlilar o\'chirildi.');
 
     if (this.state.currentTab === 'fav') this.filterChannels();
