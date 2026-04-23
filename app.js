@@ -375,7 +375,7 @@ class App {
     if (!menu) return;
 
     const actions = {
-      menuPlay: () => { window.location.href = this.state.contextChannel.url; },
+      menuPlay: () => { this.playChannel(this.state.contextChannel); },
       menuNewTab: () => { window.open(this.state.contextChannel.url, '_blank'); },
       menuFav: () => {
         Storage.toggleFavorite(this.state.contextChannel.url);
