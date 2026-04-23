@@ -583,7 +583,29 @@ class App {
   async loadPlaylist(url) {
     this.elements.loader.classList.add('show');
     try {
-      const channels = await Parser.fetchAndParse(url);
+      let channels = await Parser.fetchAndParse(url);
+      
+      // Auto-merge with country index for iptv-org
+      if (url.includes('iptv-org.github.io/iptv/index.m3u')) {
+        try {
+          const countryData = await Parser.fetchAndParse('https://iptv-org.github.io/iptv/index.country.m3u');
+          const countryMap = new Map();
+          countryData.forEach(c => countryMap.set(c.url, c));
+          
+          channels = channels.map(ch => {
+            const extra = countryMap.get(ch.url);
+            if (extra) {
+              if ((!ch.countries || !ch.countries.length) && extra.group) {
+                ch.countries = [extra.group];
+              }
+            }
+            return ch;
+          });
+        } catch (err) {
+          console.warn('Extra country metadata load failed', err);
+        }
+      }
+
       this.state.channels = channels;
       this.populateFilters();
       this.filterChannels();
