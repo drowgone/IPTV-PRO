@@ -52,7 +52,9 @@ class App {
       countRecent: document.querySelector('#count-recent'),
       alphabetIndicator: document.querySelector('#alphabetIndicator'),
       contextMenu: document.querySelector('#contextMenu'),
-      playerContextMenu: document.querySelector('#playerContextMenu')
+      playerContextMenu: document.querySelector('#playerContextMenu'),
+      sleepIndicator: document.querySelector('#sleepIndicator'),
+      sleepTimerText: document.querySelector('#sleepTimerText')
     };
 
     this.scrollTimeout = null;
@@ -216,7 +218,7 @@ class App {
       menu.querySelector('#pMenuPlayPause').innerHTML = video.paused ? '▶️ Davom ettirish' : '⏸ Pauza';
       menu.querySelector('#pMenuMute').innerHTML = video.muted ? "🔊 Ovozni yoqish" : "🔇 Ovozni o'chirish";
       
-      const isRecording = typeof Controls !== 'undefined' && Controls.state?.isRecording;
+      const isRecording = typeof Controls !== 'undefined' && Controls.isRecording;
       menu.querySelector('#pMenuRecord').innerHTML = isRecording ? "⏹ Yozishni to'xtatish" : "🔴 Yozib olishni boshlash";
 
       menu.classList.remove('hidden');
@@ -456,18 +458,43 @@ class App {
         },
         pMenuRecord: () => {
           if (typeof Controls !== 'undefined') {
-            if (Controls.state.isRecording) Controls.stopRecording();
-            else Controls.startRecording();
+            Controls.toggleRecord();
           }
         },
         pMenuSleep: () => {
           const mins = prompt("Necha daqiqadan keyin videoni to'xtataylik? (masalan: 30)");
           if (mins && !isNaN(mins)) {
-            if (this.state.sleepTimer) clearTimeout(this.state.sleepTimer);
-            this.state.sleepTimer = setTimeout(() => {
-              this.elements.video.pause();
-              alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi.");
-            }, mins * 60000);
+            const ms = mins * 60000;
+            let remaining = ms;
+            
+            // Clear existing
+            if (this.state.sleepTimer) clearInterval(this.state.sleepTimer);
+            
+            // UI Update function
+            const updateUI = () => {
+              const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
+              const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+              if (this.elements.sleepIndicator) {
+                this.elements.sleepIndicator.classList.remove('hidden');
+                this.elements.sleepTimerText.textContent = `${m}:${s}`;
+              }
+            };
+
+            updateUI();
+
+            this.state.sleepTimer = setInterval(() => {
+              remaining -= 1000;
+              if (remaining <= 0) {
+                clearInterval(this.state.sleepTimer);
+                this.state.sleepTimer = null;
+                this.elements.video.pause();
+                if (this.elements.sleepIndicator) this.elements.sleepIndicator.classList.add('hidden');
+                alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi.");
+              } else {
+                updateUI();
+              }
+            }, 1000);
+
             this.showFavToast(`⏳ Uyqu taymeri ${mins} minutga o'rnatildi.`);
           }
         }
