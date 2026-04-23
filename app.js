@@ -1229,19 +1229,40 @@ class App {
     menu.classList.remove('hidden');
     menu.classList.add('show');
 
-    const container = this.elements.videoContainer;
-    const rect = container.getBoundingClientRect();
     const menuWidth = 220;
     const menuHeight = 240;
-    
-    let x = e.clientX - rect.left;
-    let y = e.clientY - rect.top;
+    let x, y;
 
-    if (x + menuWidth > rect.width) x -= menuWidth;
-    if (y + menuHeight > rect.height) y -= menuHeight;
-    
-    x = Math.max(0, x);
-    y = Math.max(0, y);
+    // Determine if event comes from within the player container or fullscreen
+    const isInsidePlayer = e.target.closest('.video-container');
+    const isFullscreen = document.fullscreenElement !== null;
+
+    if (isInsidePlayer || isFullscreen) {
+      // Keep it within the player to survive Fullscreen and calculate relatively
+      if (menu.parentNode !== this.elements.videoContainer) {
+        this.elements.videoContainer.appendChild(menu);
+      }
+      
+      const rect = this.elements.videoContainer.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+
+      if (x + menuWidth > rect.width) x -= menuWidth;
+      if (y + menuHeight > rect.height) y -= menuHeight;
+      x = Math.max(0, x);
+      y = Math.max(0, y);
+    } else {
+      // Move to body to escape overflow:hidden of video-container
+      if (menu.parentNode !== document.body) {
+        document.body.appendChild(menu);
+      }
+      
+      x = e.clientX;
+      y = e.clientY;
+
+      if (x + menuWidth > window.innerWidth) x -= menuWidth;
+      if (y + menuHeight > window.innerHeight) y -= menuHeight;
+    }
 
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;

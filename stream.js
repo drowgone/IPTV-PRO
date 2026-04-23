@@ -53,13 +53,7 @@ const Stream = {
         fragLoadingRetryDelay: 1000,   // 1s between retries
         fragLoadingMaxRetryTimeout: 64000,
 
-        // --- User-Agent spoof via XHR headers ---
-        // Some IPTV servers block browser User-Agents; spoofing helps.
-        xhrSetup(xhr) {
-          xhr.setRequestHeader('User-Agent',
-            'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/4.0 Chrome/91.0.4472.124 TV Safari/537.36'
-          );
-        },
+        // --- User-Agent spoofing removed (modern browsers block this via XHR/fetch due to security) ---
 
         // --- Adaptive bitrate ---
         startLevel: -1,                // auto pick best quality level
