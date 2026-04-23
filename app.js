@@ -269,6 +269,9 @@ class App {
       });
     }
 
+    // Mini List Mouse Drag & Wheel Scroll
+    this.initMiniScroll();
+
     // Theme Switching
     this.elements.themeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -980,6 +983,49 @@ class App {
       if (active) {
         item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
+    });
+  }
+
+  initMiniScroll() {
+    const slider = this.elements.miniListContent;
+    if (!slider) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    // Mouse Wheel - Vertical to Horizontal
+    slider.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        slider.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
+
+    // Mouse Drag
+    slider.addEventListener('mousedown', (e) => {
+      isDown = true;
+      slider.classList.add('active-dragging');
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener('mouseleave', () => {
+      isDown = false;
+      slider.classList.remove('active-dragging');
+    });
+
+    slider.addEventListener('mouseup', () => {
+      isDown = false;
+      slider.classList.remove('active-dragging');
+    });
+
+    slider.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 2; // Speed
+      slider.scrollLeft = scrollLeft - walk;
     });
   }
 }
