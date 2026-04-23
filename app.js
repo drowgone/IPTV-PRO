@@ -520,8 +520,7 @@ class App {
         else this.renderList();
       },
       menuCopy: () => {
-        navigator.clipboard.writeText(this.state.contextChannel.url);
-        this.showFavToast('🔗 Havoladan nusxa olindi!');
+        this.copyToClipboard(this.state.contextChannel.url);
       },
       menuInfo: () => {
         this.showChannelInfo(this.state.contextChannel);
@@ -1110,6 +1109,35 @@ class App {
     this.elements.infoUrl.textContent = ch.url;
 
     this.elements.infoModal.classList.add('show');
+  }
+
+  copyToClipboard(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => this.showFavToast('🔗 Havoladan nusxa olindi!'))
+        .catch(() => this.fallbackCopy(text));
+    } else {
+      this.fallbackCopy(text);
+    }
+  }
+
+  fallbackCopy(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      this.showFavToast('🔗 Havoladan nusxa olindi!');
+    } catch (err) {
+      this.showFavToast('❌ Nusxa olishda xatolik!', 'error');
+    }
+    document.body.removeChild(textArea);
   }
 }
 
