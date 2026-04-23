@@ -1002,15 +1002,6 @@ class App {
     let startX;
     let scrollLeft;
 
-  initMiniScroll() {
-    const slider = this.elements.miniListContent;
-    if (!slider) return;
-
-    let isDown = false;
-    let startX;
-    let scrollLeft;
-
-    // Mouse Wheel - Vertical to Horizontal
     slider.addEventListener('wheel', (e) => {
       if (e.deltaY !== 0) {
         e.preventDefault();
@@ -1018,7 +1009,6 @@ class App {
       }
     }, { passive: false });
 
-    // Mouse Drag
     slider.addEventListener('mousedown', (e) => {
       isDown = true;
       slider.classList.add('active-dragging');
@@ -1040,7 +1030,7 @@ class App {
       if (!isDown) return;
       e.preventDefault();
       const x = e.pageX - slider.offsetLeft;
-      const walk = (x - startX) * 2; // Speed
+      const walk = (x - startX) * 2;
       slider.scrollLeft = scrollLeft - walk;
     });
   }
@@ -1051,10 +1041,8 @@ class App {
     const ms = mins * 60000;
     let remaining = ms;
 
-    // Clear existing
     if (this.state.sleepTimer) clearInterval(this.state.sleepTimer);
 
-    // UI Update function
     const updateUI = () => {
       const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
       const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
