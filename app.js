@@ -234,6 +234,7 @@ class App {
 
       const isFS = !!document.fullscreenElement;
       menu.querySelector('#pMenuMiniList').style.display = isFS ? 'block' : 'none';
+      menu.querySelector('#pMenuTheater').style.display = isFS ? 'none' : 'block';
 
       menu.classList.remove('hidden');
       menu.classList.add('show');
