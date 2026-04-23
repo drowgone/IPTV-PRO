@@ -221,6 +221,9 @@ class App {
       const isRecording = typeof Controls !== 'undefined' && Controls.isRecording;
       menu.querySelector('#pMenuRecord').innerHTML = isRecording ? "⏹ Yozishni to'xtatish" : "🔴 Yozib olishni boshlash";
 
+      const hasSleepTimer = !!this.state.sleepTimer;
+      menu.querySelector('#pMenuSleep').innerHTML = hasSleepTimer ? "⏳ Taymerni bekor qilish" : "⏳ Uyqu taymeri (Sleep)";
+
       menu.classList.remove('hidden');
       menu.classList.add('show');
 
@@ -462,13 +465,18 @@ class App {
           }
         },
         pMenuSleep: () => {
+          if (this.state.sleepTimer) {
+            clearInterval(this.state.sleepTimer);
+            this.state.sleepTimer = null;
+            if (this.elements.sleepIndicator) this.elements.sleepIndicator.classList.add('hidden');
+            this.showFavToast("⏳ Uyqu taymeri bekor qilindi.");
+            return;
+          }
+
           const mins = prompt("Necha daqiqadan keyin videoni to'xtataylik? (masalan: 30)");
           if (mins && !isNaN(mins)) {
             const ms = mins * 60000;
             let remaining = ms;
-            
-            // Clear existing
-            if (this.state.sleepTimer) clearInterval(this.state.sleepTimer);
             
             // UI Update function
             const updateUI = () => {
