@@ -122,10 +122,23 @@ class App {
       this.elements.m3uInput.value = savedUrl;
       await this.loadPlaylist(savedUrl);
       
-      // Restore last channel
-      const lastChannel = Storage.getLastChannel();
-      if (lastChannel) {
-        this.playChannel(lastChannel);
+      // Check for deep link (?stream=...)
+      const params = new URLSearchParams(window.location.search);
+      const deepStream = params.get('stream');
+      
+      if (deepStream) {
+        const ch = this.state.channels.find(c => c.url === deepStream);
+        if (ch) {
+          this.playChannel(ch);
+        } else {
+          this.playChannel({ name: 'Tashqi havola', url: deepStream, group: 'M3U' });
+        }
+      } else {
+        // Restore last channel
+        const lastChannel = Storage.getLastChannel();
+        if (lastChannel) {
+          this.playChannel(lastChannel);
+        }
       }
     } else {
       // Show settings modal if no URL
@@ -480,7 +493,11 @@ class App {
 
     const actions = {
       menuPlay: () => { this.playChannel(this.state.contextChannel); },
-      menuNewTab: () => { window.open(this.state.contextChannel.url, '_blank'); },
+      menuNewTab: () => { 
+        const streamUrl = this.state.contextChannel.url;
+        const playerUrl = `${window.location.origin}${window.location.pathname}?stream=${encodeURIComponent(streamUrl)}`;
+        window.open(playerUrl, '_blank');
+      },
       menuFav: () => {
         Storage.toggleFavorite(this.state.contextChannel.url);
         this.updateFavCount();
