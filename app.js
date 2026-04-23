@@ -238,11 +238,17 @@ class App {
       menu.classList.remove('hidden');
       menu.classList.add('show');
 
-      // Position
-      let x = e.clientX;
-      let y = e.clientY;
+      // Position (Relative to container)
+      const rect = this.elements.videoContainer.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      let y = e.clientY - rect.top;
+      
       const menuWidth = 220;
-      if (x + menuWidth > window.innerWidth) x -= menuWidth;
+      const menuHeight = 180; // approximate
+      
+      if (x + menuWidth > rect.width) x -= menuWidth;
+      if (y + menuHeight > rect.height) y -= menuHeight;
+
       menu.style.left = `${x}px`;
       menu.style.top = `${y}px`;
     });

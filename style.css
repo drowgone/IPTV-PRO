@@ -1470,8 +1470,8 @@ video {
 
 /* Custom Context Menu */
 .context-menu {
-  position: fixed;
-  z-index: 2000;
+  position: absolute;
+  z-index: 10000;
   width: 220px;
   background: var(--sidebar-bg);
   backdrop-filter: blur(28px);

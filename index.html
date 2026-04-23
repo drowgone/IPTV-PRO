@@ -114,6 +114,19 @@
           <!-- Volume OSD Overlay -->
           <div id="volumeOSD" class="volume-osd hidden">Ovoz: 100%</div>
 
+          <!-- Player Context Menu (Moved here for Fullscreen visibility) -->
+          <div id="playerContextMenu" class="context-menu hidden">
+            <ul>
+              <li id="pMenuPlayPause">⏸ Pauza</li>
+              <li id="pMenuMute">🔇 Ovozni o'chirish</li>
+              <li id="pMenuRecord">🔴 Yozib olishni boshlash</li>
+              <div class="context-menu-divider"></div>
+              <li id="pMenuSleep">⏳ Uyqu taymeri (Sleep)</li>
+              <li id="pMenuTheater">🎭 Kino rejimi (Theater)</li>
+              <li id="pMenuMiniList">📺 Kanallar ro'yxati (Mini)</li>
+            </ul>
+          </div>
+
           <!-- Custom Controls -->
           <div class="controls-overlay">
             <!-- Sleep Timer Indicator -->
@@ -257,17 +270,7 @@
     </div>
 
     <!-- Video Player Context Menu -->
-    <div id="playerContextMenu" class="context-menu hidden">
-      <ul>
-        <li id="pMenuPlayPause">⏸ Pauza</li>
-        <li id="pMenuMute">🔇 Ovozni o'chirish</li>
-        <li id="pMenuRecord">🔴 Yozib olishni boshlash</li>
-        <div class="context-menu-divider"></div>
-        <li id="pMenuSleep">⏳ Uyqu taymeri (Sleep)</li>
-        <li id="pMenuTheater">🎭 Kino rejimi (Theater)</li>
-        <li id="pMenuMiniList">📺 Kanallar ro'yxati (Mini)</li>
-      </ul>
-    </div>
+
 
     <script src="storage.js"></script>
     <script src="parser.js"></script>
