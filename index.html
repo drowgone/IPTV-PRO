@@ -99,10 +99,16 @@
             <button id="retryBtn" class="primary-btn">Qayta urinish (Retry)</button>
           </div>
           
-          <!-- Mini Channel List (Pop-up inside player) -->
+          <!-- Mini Channel List (Pop-up from bottom) -->
           <div id="miniChannelList" class="mini-channel-list hidden">
-            <div class="mini-list-header">Kanallar</div>
-            <div class="mini-list-content"></div>
+            <div class="mini-list-header">
+              <div class="mini-tabs">
+                <button class="mini-tab-btn active" data-mini-tab="fav">❤️ Sevimlilar</button>
+                <button class="mini-tab-btn" data-mini-tab="recent">🕒 Tarix</button>
+              </div>
+              <button id="closeMiniBtn" class="close-mini-btn">×</button>
+            </div>
+            <div class="mini-list-content grid"></div>
           </div>
 
           <!-- Volume OSD Overlay -->

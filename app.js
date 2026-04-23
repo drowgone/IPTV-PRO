@@ -13,7 +13,8 @@ class App {
         category: ''
       },
       contextChannel: null,
-      sleepTimer: null
+      sleepTimer: null,
+      miniTab: 'fav'
     };
 
     this.elements = {
@@ -248,6 +249,25 @@ class App {
         this.elements.settingsModal.classList.remove('show');
       }
     });
+
+    // Mini List Tabs & Close
+    const miniTabs = document.querySelectorAll('.mini-tab-btn');
+    miniTabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        miniTabs.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.state.miniTab = btn.dataset.miniTab;
+        this.renderMiniList();
+      });
+    });
+
+    const closeMiniBtn = document.querySelector('#closeMiniBtn');
+    if (closeMiniBtn) {
+      closeMiniBtn.addEventListener('click', () => {
+        const ml = document.querySelector('#miniChannelList');
+        if (ml) ml.classList.add('hidden');
+      });
+    }
 
     // Theme Switching
     this.elements.themeBtns.forEach(btn => {
@@ -920,12 +940,24 @@ class App {
 
   renderMiniList() {
     const list = this.elements.miniListContent;
-    if (!list || !this.state.filteredChannels.length) return;
+    if (!list) return;
 
     list.innerHTML = '';
-    const slice = this.state.filteredChannels.slice(0, 100); // Faqat birinchi 100 ta kanal
     
-    slice.forEach(ch => {
+    let channels = [];
+    if (this.state.miniTab === 'fav') {
+      channels = this.state.channels.filter(ch => Storage.isFavorite(ch.url));
+    } else {
+      const recentUrls = Storage.getRecentChannels();
+      channels = recentUrls.map(url => this.state.channels.find(c => c.url === url)).filter(Boolean);
+    }
+
+    if (channels.length === 0) {
+      list.innerHTML = `<div style="width: 100%; display: flex; align-items: center; justify-content: center; opacity: 0.5;">Hozircha hech narsa yo'q...</div>`;
+      return;
+    }
+    
+    channels.forEach(ch => {
       const active = this.state.activeChannel?.url === ch.url;
       const item = document.createElement('div');
       item.className = `mini-channel-item ${active ? 'active' : ''}`;
@@ -935,8 +967,8 @@ class App {
       item.innerHTML = `
         <img src="${logo}" alt="" onerror="this.src='${this.getFallbackLogo(ch.name)}'">
         <div class="mini-ch-info">
-          <div style="font-weight: 500;">${ch.name}</div>
-          <div style="font-size: 0.75rem; opacity: 0.6;">${ch.group}</div>
+          <div class="mini-ch-name">${ch.name}</div>
+          <div class="mini-ch-group">${ch.group}</div>
         </div>
       `;
       
@@ -946,7 +978,7 @@ class App {
       list.appendChild(item);
       
       if (active) {
-        item.scrollIntoView({ block: 'nearest' });
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });
   }
