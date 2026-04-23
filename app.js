@@ -58,6 +58,7 @@ class App {
       sleepTimerText: document.querySelector('#sleepTimerText'),
       miniListContent: document.querySelector('#miniChannelList .mini-list-content'),
       sleepTimerDialog: document.querySelector('#sleepTimerDialog'),
+      loadApiBtn: document.querySelector('#loadApiBtn'),
       infoModal: document.querySelector('#channelInfoModal'),
       infoLogo: document.querySelector('#infoLogo'),
       infoName: document.querySelector('#infoName'),
@@ -327,6 +328,14 @@ class App {
     if (this.elements.closeInfoBtn) {
       this.elements.closeInfoBtn.addEventListener('click', () => {
         this.elements.infoModal.classList.remove('show');
+      });
+    }
+
+    const loadApiBtn = document.querySelector('#loadApiBtn');
+    if (loadApiBtn) {
+      loadApiBtn.addEventListener('click', () => {
+        this.loadFromApi();
+        this.elements.settingsModal.classList.remove('show');
       });
     }
 
@@ -1169,8 +1178,8 @@ class App {
     this.elements.infoLogo.src = ch.logo && ch.logo !== 'undefined' ? ch.logo : this.getFallbackLogo(ch.name);
     this.elements.infoName.textContent = ch.name;
     this.elements.infoGroup.textContent = ch.group;
-    this.elements.infoCountry.textContent = ch.countries?.join(', ') || "Noma'lum";
-    this.elements.infoLanguage.textContent = ch.languages?.join(', ') || "Noma'lum";
+    this.elements.infoCountry.textContent = ch.countries?.map(c => c.name || c).join(', ') || "Noma'lum";
+    this.elements.infoLanguage.textContent = ch.languages?.map(l => l.name || l).join(', ') || "Noma'lum";
     this.elements.infoUrl.textContent = ch.url;
 
     this.elements.infoModal.classList.add('show');
@@ -1236,6 +1245,52 @@ class App {
 
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
+  }
+
+  async loadFromApi() {
+    this.elements.loader.classList.add('show');
+    this.elements.content.innerHTML = '<div style="text-align:center; padding: 4rem; width:100%; color:var(--text-muted); opacity: 0.6;">🛰 Global kanallar bazasi yuklanmoqda...</div>';
+    
+    try {
+      const [channelsRes, streamsRes] = await Promise.all([
+        fetch('https://iptv-org.github.io/api/channels.json'),
+        fetch('https://iptv-org.github.io/api/streams.json')
+      ]);
+
+      const channelsData = await channelsRes.json();
+      const streamsData = await streamsRes.json();
+
+      // O(1) Lookup Map for streams
+      const streamMap = new Map();
+      streamsData.forEach(s => {
+        if (!streamMap.has(s.channel)) streamMap.set(s.channel, s.url);
+      });
+
+      // Filter and Merge
+      const merged = channelsData
+        .filter(ch => streamMap.has(ch.id))
+        .map(ch => ({
+          name: ch.name || "Noma'lum Kanal",
+          logo: ch.logo || "",
+          url: streamMap.get(ch.id),
+          group: (ch.categories && ch.categories[0]) || "Discovery",
+          countries: ch.countries || [],
+          languages: ch.languages || [],
+          tags: []
+        }));
+
+      this.state.channels = merged;
+      this.populateFilters();
+      this.filterChannels();
+      
+      this.showFavToast(`✅ ${merged.length} ta global kanal yuklandi!`);
+      
+    } catch (err) {
+      console.error('API Load Error:', err);
+      this.showFavToast('❌ Bazani yuklashda xatolik!', 'error');
+    } finally {
+      this.elements.loader.classList.remove('show');
+    }
   }
 }
 
