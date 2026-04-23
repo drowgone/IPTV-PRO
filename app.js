@@ -229,6 +229,12 @@ class App {
       const hasSleepTimer = !!this.state.sleepTimer;
       menu.querySelector('#pMenuSleep').innerHTML = hasSleepTimer ? "⏳ Taymerni bekor qilish" : "⏳ Uyqu taymeri (Sleep)";
 
+      const isTheater = this.elements.videoContainer.classList.contains('theater-mode');
+      menu.querySelector('#pMenuTheater').innerHTML = isTheater ? "🎭 Kino rejimidan chiqish" : "🎭 Kino rejimi (Theater)";
+
+      const isFS = !!document.fullscreenElement;
+      menu.querySelector('#pMenuMiniList').style.display = isFS ? 'block' : 'none';
+
       menu.classList.remove('hidden');
       menu.classList.add('show');
 
@@ -532,6 +538,12 @@ class App {
 
             this.showFavToast(`⏳ Uyqu taymeri ${mins} minutga o'rnatildi.`);
           }
+        },
+        pMenuTheater: () => {
+          if (typeof Controls !== 'undefined') Controls.toggleTheater();
+        },
+        pMenuMiniList: () => {
+          if (typeof Controls !== 'undefined') Controls.toggleMiniList();
         }
       };
 
