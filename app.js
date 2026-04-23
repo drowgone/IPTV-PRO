@@ -808,31 +808,7 @@ class App {
 
     // Context Menu Event
     div.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      this.state.contextChannel = channel;
-      
-      const menu = this.elements.contextMenu;
-      if (!menu) return;
-
-      // Update Favorite text
-      const favLi = menu.querySelector('#menuFav');
-      const isFav = Storage.isFavorite(channel.url);
-      favLi.innerHTML = isFav ? "💔 Sevimlilardan o'chirish" : "❤️ Sevimlilarga qo'shish";
-
-      menu.classList.remove('hidden');
-      menu.classList.add('show');
-
-      // Position
-      const menuWidth = 220;
-      const menuHeight = 240;
-      let x = e.clientX;
-      let y = e.clientY;
-
-      if (x + menuWidth > window.innerWidth) x -= menuWidth;
-      if (y + menuHeight > window.innerHeight) y -= menuHeight;
-
-      menu.style.left = `${x}px`;
-      menu.style.top = `${y}px`;
+      this.showContextMenu(e, channel);
     });
 
     return div;
@@ -1036,12 +1012,53 @@ class App {
       item.addEventListener('click', () => {
         this.playChannel(ch);
       });
+
+      item.addEventListener('contextmenu', (e) => {
+        this.showContextMenu(e, ch);
+      });
+
       list.appendChild(item);
       
       if (active) {
         item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });
+  }
+
+  showContextMenu(e, channel) {
+    if (!channel) return;
+    e.preventDefault();
+    this.state.contextChannel = channel;
+    
+    const menu = this.elements.contextMenu;
+    if (!menu) return;
+
+    // Update Favorite text
+    const favLi = menu.querySelector('#menuFav');
+    const isFav = Storage.isFavorite(channel.url);
+    favLi.innerHTML = isFav ? "💔 Sevimlardan o'chirish" : "❤️ Sevimlilarga qo'shish";
+
+    menu.classList.remove('hidden');
+    menu.classList.add('show');
+
+    // Position relative to video-container
+    const container = this.elements.videoContainer;
+    const rect = container.getBoundingClientRect();
+    
+    const menuWidth = 220;
+    const menuHeight = 240;
+    
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    if (x + menuWidth > rect.width) x -= menuWidth;
+    if (y + menuHeight > rect.height) y -= menuHeight;
+    
+    x = Math.max(0, x);
+    y = Math.max(0, y);
+
+    menu.style.left = f"{x}px";
+    menu.style.top = f"{y}px";
   }
 
   initMiniScroll() {
@@ -1111,7 +1128,7 @@ class App {
         this.state.sleepTimer = null;
         this.elements.video.pause();
         if (this.elements.sleepIndicator) this.elements.sleepIndicator.classList.add('hidden');
-        alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi.");
+        alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi." );
       } else {
         updateUI();
       }
@@ -1160,6 +1177,39 @@ class App {
       this.showFavToast('❌ Nusxa olishda xatolik!', 'error');
     }
     document.body.removeChild(textArea);
+  }
+
+  showContextMenu(e, channel) {
+    if (!channel) return;
+    e.preventDefault();
+    this.state.contextChannel = channel;
+    
+    const menu = this.elements.contextMenu;
+    if (!menu) return;
+
+    const favLi = menu.querySelector('#menuFav');
+    const isFav = Storage.isFavorite(channel.url);
+    favLi.innerHTML = isFav ? "💔 Sevimlardan o'chirish" : "❤️ Sevimlilarga qo'shish";
+
+    menu.classList.remove('hidden');
+    menu.classList.add('show');
+
+    const container = this.elements.videoContainer;
+    const rect = container.getBoundingClientRect();
+    const menuWidth = 220;
+    const menuHeight = 240;
+    
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    if (x + menuWidth > rect.width) x -= menuWidth;
+    if (y + menuHeight > rect.height) y -= menuHeight;
+    
+    x = Math.max(0, x);
+    y = Math.max(0, y);
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
   }
 }
 

@@ -87,6 +87,17 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
         <div class="video-container">
+    <!-- Custom Channel Context Menu -->
+    <div id="contextMenu" class="context-menu hidden">
+      <ul>
+        <li id="menuPlay">▶️ Hozir ko'rish</li>
+        <li id="menuNewTab">🪟 Yangi oynada ochish</li>
+        <li id="menuFav">❤️ Sevimlilarga qo'shish</li>
+        <li id="menuCopy">🔗 Havolani nusxalash</li>
+        <li id="menuInfo">ℹ️ Kanal haqida</li>
+      </ul>
+    </div>
+
           <video id="mainVideo" playsinline webkit-playsinline></video>
           <div class="loader"></div>
           <div id="tvStaticOverlay" class="tv-static-overlay"></div>
@@ -307,17 +318,6 @@
     </div>
 
     <!-- Custom Context Menu -->
-    <div id="contextMenu" class="context-menu hidden">
-      <ul>
-        <li id="menuPlay">▶️ Hozir ko'rish</li>
-        <li id="menuNewTab">🪟 Yangi oynada ochish</li>
-        <li id="menuFav">❤️ Sevimlilarga qo'shish</li>
-        <li id="menuCopy">🔗 Havolani nusxalash</li>
-        <li id="menuInfo">ℹ️ Kanal haqida</li>
-      </ul>
-    </div>
-
-    <!-- Video Player Context Menu -->
 
 
     <div id="favToast" class="fav-toast hidden"></div>
