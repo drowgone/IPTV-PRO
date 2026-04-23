@@ -1483,3 +1483,9 @@ video {
 .context-menu.hidden {
   display: none;
 }
+
+.context-menu-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 8px;
+}

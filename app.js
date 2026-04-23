@@ -12,7 +12,8 @@ class App {
         language: '',
         category: ''
       },
-      contextChannel: null
+      contextChannel: null,
+      sleepTimer: null
     };
 
     this.elements = {
@@ -50,7 +51,8 @@ class App {
       countFav: document.querySelector('#count-fav'),
       countRecent: document.querySelector('#count-recent'),
       alphabetIndicator: document.querySelector('#alphabetIndicator'),
-      contextMenu: document.querySelector('#contextMenu')
+      contextMenu: document.querySelector('#contextMenu'),
+      playerContextMenu: document.querySelector('#playerContextMenu')
     };
 
     this.scrollTimeout = null;
@@ -179,15 +181,54 @@ class App {
       this.elements.settingsModal.classList.remove('show');
     });
 
-    // Global click to hide context menu
+    // Global click to hide context menus
     document.addEventListener('click', () => {
       if (this.elements.contextMenu) this.elements.contextMenu.classList.remove('show');
+      if (this.elements.playerContextMenu) this.elements.playerContextMenu.classList.remove('show');
     });
 
     document.addEventListener('contextmenu', (e) => {
-      if (!e.target.closest('.channel-item')) {
-        if (this.elements.contextMenu) this.elements.contextMenu.classList.remove('show');
+      const isChannel = e.target.closest('.channel-item');
+      const isVideo = e.target.closest('#mainVideo');
+
+      if (!isChannel && this.elements.contextMenu) this.elements.contextMenu.classList.remove('show');
+      if (!isVideo && this.elements.playerContextMenu) this.elements.playerContextMenu.classList.remove('show');
+    });
+
+    // Video Player Events (DoubleClick & ContextMenu)
+    this.elements.video.addEventListener('dblclick', () => {
+      if (!document.fullscreenElement) {
+        this.elements.videoContainer.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
       }
+    });
+
+    this.elements.video.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const menu = this.elements.playerContextMenu;
+      if (!menu) return;
+
+      // Update UI states
+      const video = this.elements.video;
+      menu.querySelector('#pMenuPlayPause').innerHTML = video.paused ? '▶️ Davom ettirish' : '⏸ Pauza';
+      menu.querySelector('#pMenuMute').innerHTML = video.muted ? '🔊 Ovozni yoqish' : '🔇 Ovozni o'chirish';
+      
+      const isRecording = typeof Controls !== 'undefined' && Controls.state?.isRecording;
+      menu.querySelector('#pMenuRecord').innerHTML = isRecording ? '⏹ Yozishni to'xtatish' : '🔴 Yozib olishni boshlash';
+
+      menu.classList.remove('hidden');
+      menu.classList.add('show');
+
+      // Position
+      let x = e.clientX;
+      let y = e.clientY;
+      const menuWidth = 220;
+      if (x + menuWidth > window.innerWidth) x -= menuWidth;
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
     });
 
     this.elements.saveSettingsBtn.addEventListener('click', async () => {
@@ -401,6 +442,44 @@ class App {
         menu.classList.remove('show');
       });
     });
+
+    // Player Context Menu Actions
+    const pMenu = this.elements.playerContextMenu;
+    if (pMenu) {
+      const pActions = {
+        pMenuPlayPause: () => {
+          if (this.elements.video.paused) this.elements.video.play();
+          else this.elements.video.pause();
+        },
+        pMenuMute: () => {
+          this.elements.video.muted = !this.elements.video.muted;
+        },
+        pMenuRecord: () => {
+          if (typeof Controls !== 'undefined') {
+            if (Controls.state.isRecording) Controls.stopRecording();
+            else Controls.startRecording();
+          }
+        },
+        pMenuSleep: () => {
+          const mins = prompt("Necha daqiqadan keyin videoni to'xtataylik? (masalan: 30)");
+          if (mins && !isNaN(mins)) {
+            if (this.state.sleepTimer) clearTimeout(this.state.sleepTimer);
+            this.state.sleepTimer = setTimeout(() => {
+              this.elements.video.pause();
+              alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi.");
+            }, mins * 60000);
+            this.showFavToast(`⏳ Uyqu taymeri ${mins} minutga o'rnatildi.`);
+          }
+        }
+      };
+
+      pMenu.querySelectorAll('li').forEach(li => {
+        li.addEventListener('click', () => {
+          if (pActions[li.id]) pActions[li.id]();
+          pMenu.classList.remove('show');
+        });
+      });
+    }
   }
 
   async loadPlaylist(url) {
