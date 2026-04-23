@@ -585,24 +585,50 @@ class App {
     try {
       let channels = await Parser.fetchAndParse(url);
       
-      // Auto-merge with country index for iptv-org
+      // Auto-merge with multiple metadata sources for iptv-org
       if (url.includes('iptv-org.github.io/iptv/index.m3u')) {
         try {
-          const countryData = await Parser.fetchAndParse('https://iptv-org.github.io/iptv/index.country.m3u');
+          const base = 'https://iptv-org.github.io/iptv/';
+          const enrichSources = [
+            base + 'index.country.m3u',
+            base + 'index.language.m3u',
+            base + 'index.category.m3u'
+          ];
+
+          // Fetch all extra metadata in parallel
+          const extraResults = await Promise.all(
+            enrichSources.map(src => Parser.fetchAndParse(src).catch(() => []))
+          );
+
+          // Build Lookup Maps
           const countryMap = new Map();
-          countryData.forEach(c => countryMap.set(c.url, c));
-          
+          const langMap = new Map();
+          const catMap = new Map();
+
+          extraResults[0].forEach(c => countryMap.set(c.url, c.group));
+          extraResults[1].forEach(c => langMap.set(c.url, c.group));
+          extraResults[2].forEach(c => catMap.set(c.url, c.group));
+
           channels = channels.map(ch => {
-            const extra = countryMap.get(ch.url);
-            if (extra) {
-              if ((!ch.countries || !ch.countries.length) && extra.group) {
-                ch.countries = [extra.group];
-              }
+            // Apply Country info
+            if (countryMap.has(ch.url)) {
+              const cName = countryMap.get(ch.url);
+              if (!ch.countries || ch.countries.length === 0) ch.countries = [cName];
+            }
+            // Apply Language info
+            if (langMap.has(ch.url)) {
+              const lName = langMap.get(ch.url);
+              if (!ch.languages || ch.languages.length === 0) ch.languages = [lName];
+            }
+            // Apply Category/Group info
+            if (catMap.has(ch.url)) {
+              const catName = catMap.get(ch.url);
+              if (!ch.group || ch.group === 'Boshqalar') ch.group = catName;
             }
             return ch;
           });
         } catch (err) {
-          console.warn('Extra country metadata load failed', err);
+          console.warn('Enrichment engine error:', err);
         }
       }
 
