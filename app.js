@@ -214,10 +214,10 @@ class App {
       // Update UI states
       const video = this.elements.video;
       menu.querySelector('#pMenuPlayPause').innerHTML = video.paused ? '▶️ Davom ettirish' : '⏸ Pauza';
-      menu.querySelector('#pMenuMute').innerHTML = video.muted ? '🔊 Ovozni yoqish' : '🔇 Ovozni o'chirish';
+      menu.querySelector('#pMenuMute').innerHTML = video.muted ? "🔊 Ovozni yoqish" : "🔇 Ovozni o'chirish";
       
       const isRecording = typeof Controls !== 'undefined' && Controls.state?.isRecording;
-      menu.querySelector('#pMenuRecord').innerHTML = isRecording ? '⏹ Yozishni to'xtatish' : '🔴 Yozib olishni boshlash';
+      menu.querySelector('#pMenuRecord').innerHTML = isRecording ? "⏹ Yozishni to'xtatish" : "🔴 Yozib olishni boshlash";
 
       menu.classList.remove('hidden');
       menu.classList.add('show');
@@ -431,7 +431,7 @@ class App {
       },
       menuInfo: () => {
         const ch = this.state.contextChannel;
-        const info = `📺 Nomi: ${ch.name}\n📂 Guruh: ${ch.group}\n🌍 Davlat: ${ch.countries?.join(', ') || 'Noma\'lum'}\n🗣 Til: ${ch.languages?.join(', ') || 'Noma\'lum'}\n🏷 Teglar: ${ch.tags?.join(', ') || 'Yo\'q'}`;
+        const info = `📺 Nomi: ${ch.name}\n📂 Guruh: ${ch.group}\n🌍 Davlat: ${ch.countries?.join(', ') || "Noma'lum"}\n🗣 Til: ${ch.languages?.join(', ') || "Noma'lum"}\n🏷 Teglar: ${ch.tags?.join(', ') || "Yo'q"}`;
         alert(info);
       }
     };
@@ -697,7 +697,7 @@ class App {
       // Update Favorite text
       const favLi = menu.querySelector('#menuFav');
       const isFav = Storage.isFavorite(channel.url);
-      favLi.innerHTML = isFav ? '💔 Sevimlilardan o\'chirish' : '❤️ Sevimlilarga qo\'shish';
+      favLi.innerHTML = isFav ? "💔 Sevimlilardan o'chirish" : "❤️ Sevimlilarga qo'shish";
 
       menu.classList.remove('hidden');
       menu.classList.add('show');
