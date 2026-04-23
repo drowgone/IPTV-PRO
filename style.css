@@ -1572,24 +1572,24 @@ video {
   opacity: 0;
 }
 
-/* Mini Channel List (Bottom Overlay) */
+/* Mini Channel List (Bottom Overlay) - Hyper Premium Glassmorphism */
 .mini-channel-list {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 320px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
+  height: 340px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
   z-index: 1001;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   color: white;
-  padding: 0 1rem 1rem;
-  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.5);
+  padding: 0 1.5rem 1.5rem;
+  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .mini-channel-list.hidden {
@@ -1600,54 +1600,60 @@ video {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.2rem 0;
+  padding: 1.5rem 0 1rem;
 }
 
 .mini-tabs {
   display: flex;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .mini-tab-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
-  padding: 0.6rem 1.2rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.7rem 1.4rem;
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .mini-tab-btn.active {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), #2563eb);
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  transform: scale(1.02);
 }
 
 .close-mini-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .close-mini-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.25);
   border-color: rgba(239, 68, 68, 0.4);
+  transform: rotate(90deg) scale(1.1);
 }
 
 .mini-list-content.grid {
@@ -1655,52 +1661,99 @@ video {
   overflow-x: auto;
   overflow-y: hidden;
   display: flex;
-  gap: 1.2rem;
-  padding: 0.5rem 0 1rem;
+  gap: 1.5rem;
+  padding: 1rem 0.5rem 1.5rem;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.mini-list-content::-webkit-scrollbar {
+  height: 4px;
+}
+
+.mini-list-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
 
 .mini-channel-item {
-  flex: 0 0 180px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.2rem;
+  flex: 0 0 190px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(5px);
+  border-radius: 20px;
+  padding: 1.4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: mini-item-in 0.4s both;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: mini-item-in 0.5s both;
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-channel-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left:0;
+  right:0;
+  height: 100%;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent);
+  pointer-events: none;
 }
 
 @keyframes mini-item-in {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .mini-channel-item:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-8px) scale(1.02);
-  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-12px);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
 }
 
 .mini-channel-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1));
+  background: rgba(59, 130, 246, 0.08);
   border-color: var(--primary-color);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.25), inset 0 0 10px rgba(59, 130, 246, 0.1);
+}
+
+.mini-channel-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 20px;
+  border: 2px solid var(--primary-color);
+  animation: border-glow 2s infinite;
+}
+
+@keyframes border-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 .mini-channel-item img {
-  width: 70px;
-  height: 70px;
-  border-radius: 14px;
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
   object-fit: contain;
   background: #000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.4s ease;
+}
+
+.mini-channel-item:hover img {
+  transform: scale(1.1) rotate(-3deg);
 }
 
 .mini-ch-info {
@@ -1708,17 +1761,19 @@ video {
 }
 
 .mini-ch-name {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .mini-ch-group {
-  font-size: 0.7rem;
-  opacity: 0.5;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--primary-color);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
