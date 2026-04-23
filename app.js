@@ -1092,8 +1092,8 @@ class App {
     x = Math.max(0, x);
     y = Math.max(0, y);
 
-    menu.style.left = f"{x}px";
-    menu.style.top = f"{y}px";
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
   }
 
   initMiniScroll() {
