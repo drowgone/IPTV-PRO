@@ -51,6 +51,12 @@ const Controls = {
     const fullscreenBtn = this.container.querySelector('#fullscreenBtn');
     fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
 
+    // Theater
+    const theaterBtn = this.container.querySelector('#theaterBtn');
+    if (theaterBtn) {
+      theaterBtn.addEventListener('click', () => this.toggleTheater());
+    }
+
     // PIP
     const pipBtn = this.container.querySelector('#pipBtn');
     pipBtn.addEventListener('click', () => this.togglePip());
@@ -93,13 +99,31 @@ const Controls = {
         case 'KeyF':
           this.toggleFullscreen();
           break;
+        case 'KeyM':
+          this.video.muted = !this.video.muted;
+          this.showVolumeOSD(this.video.muted ? "Ovoz ochirildi" : `Ovoz: ${Math.round(this.video.volume * 100)}%`);
+          break;
+        case 'KeyT':
+          this.toggleTheater();
+          break;
+        case 'KeyC':
+          this.toggleMiniList();
+          break;
         case 'ArrowUp':
           e.preventDefault();
           this.video.volume = Math.min(1, this.video.volume + 0.1);
+          this.showVolumeOSD(`Ovoz: ${Math.round(this.video.volume * 100)}%`);
           break;
         case 'ArrowDown':
           e.preventDefault();
           this.video.volume = Math.max(0, this.video.volume - 0.1);
+          this.showVolumeOSD(`Ovoz: ${Math.round(this.video.volume * 100)}%`);
+          break;
+        case 'ArrowLeft':
+          if (window.app) window.app.playPreviousChannel();
+          break;
+        case 'ArrowRight':
+          if (window.app) window.app.playNextChannel();
           break;
       }
     });
@@ -162,6 +186,36 @@ const Controls = {
     } else if (document.pictureInPictureEnabled) {
       await this.video.requestPictureInPicture();
     }
+  },
+
+  toggleTheater() {
+    this.container.classList.toggle('theater-mode');
+    const isTheater = this.container.classList.contains('theater-mode');
+    if (isTheater && document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+  },
+
+  toggleMiniList() {
+    const isSpecialMode = document.fullscreenElement || this.container.classList.contains('theater-mode');
+    if (!isSpecialMode) return; // Only in fullscreen or theater
+
+    const miniList = this.container.querySelector('#miniChannelList');
+    if (miniList) {
+      miniList.classList.toggle('hidden');
+      if (!miniList.classList.contains('hidden')) {
+        if (window.app) window.app.renderMiniList();
+      }
+    }
+  },
+
+  showVolumeOSD(text) {
+    const osd = this.container.querySelector('#volumeOSD');
+    if (!osd) return;
+    osd.textContent = text;
+    osd.classList.remove('hidden');
+    clearTimeout(this.osdTimer);
+    this.osdTimer = setTimeout(() => osd.classList.add('hidden'), 2000);
   },
 
   toggleRecord() {

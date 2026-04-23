@@ -54,7 +54,8 @@ class App {
       contextMenu: document.querySelector('#contextMenu'),
       playerContextMenu: document.querySelector('#playerContextMenu'),
       sleepIndicator: document.querySelector('#sleepIndicator'),
-      sleepTimerText: document.querySelector('#sleepTimerText')
+      sleepTimerText: document.querySelector('#sleepTimerText'),
+      miniListContent: document.querySelector('#miniChannelList .mini-list-content')
     };
 
     this.scrollTimeout = null;
@@ -62,6 +63,9 @@ class App {
     this.virtualScroll = {
       itemHeight: 74, // Approximate height of channel-item (68px + margins)
     };
+
+    window.app = this; // Global reference for Controls
+
 
     // Scroll Event for Alphabet Indicator
     this.elements.channelList.addEventListener('scroll', () => {
@@ -754,6 +758,7 @@ class App {
   }
 
   playChannel(channel) {
+    if (!channel) return;
     // If recording is active, auto-save before switching channels
     if (typeof Controls !== 'undefined') Controls.channelSwitchGuard();
 
@@ -896,6 +901,54 @@ class App {
     this._toastTimer = setTimeout(() => {
       toast.classList.add('hidden');
     }, 3500);
+  }
+  playNextChannel() {
+    if (this.state.filteredChannels.length === 0) return;
+    const currentIndex = this.state.filteredChannels.findIndex(ch => ch.url === this.state.activeChannel?.url);
+    const nextIndex = (currentIndex + 1) % this.state.filteredChannels.length;
+    this.playChannel(this.state.filteredChannels[nextIndex]);
+    this.showFavToast(`⏭ Keyingi: ${this.state.filteredChannels[nextIndex].name}`);
+  }
+
+  playPreviousChannel() {
+    if (this.state.filteredChannels.length === 0) return;
+    const currentIndex = this.state.filteredChannels.findIndex(ch => ch.url === this.state.activeChannel?.url);
+    const prevIndex = (currentIndex - 1 + this.state.filteredChannels.length) % this.state.filteredChannels.length;
+    this.playChannel(this.state.filteredChannels[prevIndex]);
+    this.showFavToast(`⏮ Oldingi: ${this.state.filteredChannels[prevIndex].name}`);
+  }
+
+  renderMiniList() {
+    const list = this.elements.miniListContent;
+    if (!list || !this.state.filteredChannels.length) return;
+
+    list.innerHTML = '';
+    const slice = this.state.filteredChannels.slice(0, 100); // Faqat birinchi 100 ta kanal
+    
+    slice.forEach(ch => {
+      const active = this.state.activeChannel?.url === ch.url;
+      const item = document.createElement('div');
+      item.className = `mini-channel-item ${active ? 'active' : ''}`;
+      
+      const logo = ch.logo && ch.logo !== 'undefined' ? ch.logo : this.getFallbackLogo(ch.name);
+      
+      item.innerHTML = `
+        <img src="${logo}" alt="" onerror="this.src='${this.getFallbackLogo(ch.name)}'">
+        <div class="mini-ch-info">
+          <div style="font-weight: 500;">${ch.name}</div>
+          <div style="font-size: 0.75rem; opacity: 0.6;">${ch.group}</div>
+        </div>
+      `;
+      
+      item.addEventListener('click', () => {
+        this.playChannel(ch);
+      });
+      list.appendChild(item);
+      
+      if (active) {
+        item.scrollIntoView({ block: 'nearest' });
+      }
+    });
   }
 }
 

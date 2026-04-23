@@ -99,6 +99,15 @@
             <button id="retryBtn" class="primary-btn">Qayta urinish (Retry)</button>
           </div>
           
+          <!-- Mini Channel List (Pop-up inside player) -->
+          <div id="miniChannelList" class="mini-channel-list hidden">
+            <div class="mini-list-header">Kanallar</div>
+            <div class="mini-list-content"></div>
+          </div>
+
+          <!-- Volume OSD Overlay -->
+          <div id="volumeOSD" class="volume-osd hidden">Ovoz: 100%</div>
+
           <!-- Custom Controls -->
           <div class="controls-overlay">
             <!-- Sleep Timer Indicator -->
@@ -150,6 +159,11 @@
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6" fill="currentColor"></circle></svg>
                 </button>
                 
+                <!-- Theater Mode Button -->
+                <button id="theaterBtn" class="control-btn" title="Kino rejimi (T)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="15" x2="22" y2="15"></line></svg>
+                </button>
+
                 <button id="pipBtn" class="control-btn" title="Picture in Picture">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="10" width="10" height="7" rx="1"></rect><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
                 </button>

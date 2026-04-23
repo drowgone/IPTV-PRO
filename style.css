@@ -1529,3 +1529,107 @@ video {
   background: var(--glass-border);
   margin: 4px 8px;
 }
+
+/* Theater Mode */
+.video-container.theater-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+.video-container.theater-mode video {
+  height: 100vh;
+  border-radius: 0;
+}
+
+/* Volume OSD */
+.volume-osd {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  z-index: 1000;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.volume-osd.hidden {
+  opacity: 0;
+}
+
+/* Mini Channel List */
+.mini-channel-list {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(24px);
+  z-index: 1001;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: white;
+}
+
+.mini-channel-list.hidden {
+  transform: translateX(100%);
+}
+
+.mini-list-header {
+  padding: 1.5rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mini-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.mini-channel-item {
+  padding: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.mini-channel-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mini-channel-item.active {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.mini-channel-item img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #000;
+  object-fit: contain;
+}
