@@ -57,7 +57,15 @@ class App {
       sleepIndicator: document.querySelector('#sleepIndicator'),
       sleepTimerText: document.querySelector('#sleepTimerText'),
       miniListContent: document.querySelector('#miniChannelList .mini-list-content'),
-      sleepTimerDialog: document.querySelector('#sleepTimerDialog')
+      sleepTimerDialog: document.querySelector('#sleepTimerDialog'),
+      infoModal: document.querySelector('#channelInfoModal'),
+      infoLogo: document.querySelector('#infoLogo'),
+      infoName: document.querySelector('#infoName'),
+      infoGroup: document.querySelector('#infoGroup'),
+      infoCountry: document.querySelector('#infoCountry'),
+      infoLanguage: document.querySelector('#infoLanguage'),
+      infoUrl: document.querySelector('#infoUrl'),
+      closeInfoBtn: document.querySelector('#closeInfoModalBtn')
     };
 
     this.scrollTimeout = null;
@@ -316,6 +324,12 @@ class App {
       });
     }
 
+    if (this.elements.closeInfoBtn) {
+      this.elements.closeInfoBtn.addEventListener('click', () => {
+        this.elements.infoModal.classList.remove('show');
+      });
+    }
+
     // Theme Switching
     this.elements.themeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -510,9 +524,7 @@ class App {
         this.showFavToast('🔗 Havoladan nusxa olindi!');
       },
       menuInfo: () => {
-        const ch = this.state.contextChannel;
-        const info = `📺 Nomi: ${ch.name}\n📂 Guruh: ${ch.group}\n🌍 Davlat: ${ch.countries?.join(', ') || "Noma'lum"}\n🗣 Til: ${ch.languages?.join(', ') || "Noma'lum"}\n🏷 Teglar: ${ch.tags?.join(', ') || "Yo'q"}`;
-        alert(info);
+        this.showChannelInfo(this.state.contextChannel);
       }
     };
 
@@ -1086,9 +1098,21 @@ class App {
 
     this.showFavToast(`⏳ Uyqu taymeri ${mins} minutga o'rnatildi.`);
   }
+
+  showChannelInfo(ch) {
+    if (!ch || !this.elements.infoModal) return;
+
+    this.elements.infoLogo.src = ch.logo && ch.logo !== 'undefined' ? ch.logo : this.getFallbackLogo(ch.name);
+    this.elements.infoName.textContent = ch.name;
+    this.elements.infoGroup.textContent = ch.group;
+    this.elements.infoCountry.textContent = ch.countries?.join(', ') || "Noma'lum";
+    this.elements.infoLanguage.textContent = ch.languages?.join(', ') || "Noma'lum";
+    this.elements.infoUrl.textContent = ch.url;
+
+    this.elements.infoModal.classList.add('show');
+  }
 }
 
-// Start App
 window.addEventListener('DOMContentLoaded', () => {
   new App();
 });
