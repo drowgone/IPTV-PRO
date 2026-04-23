@@ -114,6 +114,19 @@
           <!-- Volume OSD Overlay -->
           <div id="volumeOSD" class="volume-osd hidden">Ovoz: 100%</div>
 
+          <!-- Sleep Timer Selection Dialog -->
+          <div id="sleepTimerDialog" class="sleep-timer-dialog hidden">
+            <div class="sleep-dialog-header">Vaqtni tanlang</div>
+            <div class="sleep-options">
+              <button class="sleep-opt-btn" data-mins="5">5 m</button>
+              <button class="sleep-opt-btn" data-mins="15">15 m</button>
+              <button class="sleep-opt-btn" data-mins="30">30 m</button>
+              <button class="sleep-opt-btn" data-mins="60">1 soat</button>
+              <button class="sleep-opt-btn" data-mins="120">2 soat</button>
+            </div>
+            <button id="closeSleepDialog" class="sleep-cancel-btn">Bekor qilish</button>
+          </div>
+
           <!-- Player Context Menu (Moved here for Fullscreen visibility) -->
           <div id="playerContextMenu" class="context-menu hidden">
             <ul>

@@ -56,7 +56,8 @@ class App {
       playerContextMenu: document.querySelector('#playerContextMenu'),
       sleepIndicator: document.querySelector('#sleepIndicator'),
       sleepTimerText: document.querySelector('#sleepTimerText'),
-      miniListContent: document.querySelector('#miniChannelList .mini-list-content')
+      miniListContent: document.querySelector('#miniChannelList .mini-list-content'),
+      sleepTimerDialog: document.querySelector('#sleepTimerDialog')
     };
 
     this.scrollTimeout = null;
@@ -284,6 +285,23 @@ class App {
 
     // Mini List Mouse Drag & Wheel Scroll
     this.initMiniScroll();
+
+    // Sleep Timer Dialog Events
+    const sleepOptBtns = document.querySelectorAll('.sleep-opt-btn');
+    sleepOptBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mins = parseInt(btn.dataset.mins);
+        this.setSleepTimer(mins);
+        if (this.elements.sleepTimerDialog) this.elements.sleepTimerDialog.classList.remove('show');
+      });
+    });
+
+    const closeSleepDialog = document.querySelector('#closeSleepDialog');
+    if (closeSleepDialog) {
+      closeSleepDialog.addEventListener('click', () => {
+        if (this.elements.sleepTimerDialog) this.elements.sleepTimerDialog.classList.remove('show');
+      });
+    }
 
     // Theme Switching
     this.elements.themeBtns.forEach(btn => {
@@ -513,37 +531,8 @@ class App {
             return;
           }
 
-          const mins = prompt("Necha daqiqadan keyin videoni to'xtataylik? (masalan: 30)");
-          if (mins && !isNaN(mins)) {
-            const ms = mins * 60000;
-            let remaining = ms;
-            
-            // UI Update function
-            const updateUI = () => {
-              const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
-              const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
-              if (this.elements.sleepIndicator) {
-                this.elements.sleepIndicator.classList.remove('hidden');
-                this.elements.sleepTimerText.textContent = `${m}:${s}`;
-              }
-            };
-
-            updateUI();
-
-            this.state.sleepTimer = setInterval(() => {
-              remaining -= 1000;
-              if (remaining <= 0) {
-                clearInterval(this.state.sleepTimer);
-                this.state.sleepTimer = null;
-                this.elements.video.pause();
-                if (this.elements.sleepIndicator) this.elements.sleepIndicator.classList.add('hidden');
-                alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi.");
-              } else {
-                updateUI();
-              }
-            }, 1000);
-
-            this.showFavToast(`⏳ Uyqu taymeri ${mins} minutga o'rnatildi.`);
+          if (this.elements.sleepTimerDialog) {
+            this.elements.sleepTimerDialog.classList.add('show');
           }
         },
         pMenuTheater: () => {
@@ -1013,6 +1002,14 @@ class App {
     let startX;
     let scrollLeft;
 
+  initMiniScroll() {
+    const slider = this.elements.miniListContent;
+    if (!slider) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
     // Mouse Wheel - Vertical to Horizontal
     slider.addEventListener('wheel', (e) => {
       if (e.deltaY !== 0) {
@@ -1046,6 +1043,43 @@ class App {
       const walk = (x - startX) * 2; // Speed
       slider.scrollLeft = scrollLeft - walk;
     });
+  }
+
+  setSleepTimer(mins) {
+    if (!mins || isNaN(mins)) return;
+
+    const ms = mins * 60000;
+    let remaining = ms;
+
+    // Clear existing
+    if (this.state.sleepTimer) clearInterval(this.state.sleepTimer);
+
+    // UI Update function
+    const updateUI = () => {
+      const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
+      const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+      if (this.elements.sleepIndicator) {
+        this.elements.sleepIndicator.classList.remove('hidden');
+        this.elements.sleepTimerText.textContent = `${m}:${s}`;
+      }
+    };
+
+    updateUI();
+
+    this.state.sleepTimer = setInterval(() => {
+      remaining -= 1000;
+      if (remaining <= 0) {
+        clearInterval(this.state.sleepTimer);
+        this.state.sleepTimer = null;
+        this.elements.video.pause();
+        if (this.elements.sleepIndicator) this.elements.sleepIndicator.classList.add('hidden');
+        alert("⏳ Uyqu vaqti tugadi! Video to'xtatildi.");
+      } else {
+        updateUI();
+      }
+    }, 1000);
+
+    this.showFavToast(`⏳ Uyqu taymeri ${mins} minutga o'rnatildi.`);
   }
 }
 
