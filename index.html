@@ -64,6 +64,7 @@
         <div class="tabs-header">
           <div class="tabs">
             <button class="tab-btn active" data-tab="all">Barchasi <span class="tab-count" id="count-all">0</span></button>
+            <button class="tab-btn" data-tab="countries">Davlatlar <span class="tab-count" id="count-countries">0</span></button>
             <button class="tab-btn" data-tab="fav">Sevimlilar <span class="tab-count" id="count-fav">0</span></button>
             <button class="tab-btn" data-tab="recent">Tarix <span class="tab-count" id="count-recent">0</span></button>
           </div>
@@ -138,6 +139,15 @@
             <button id="closeSleepDialog" class="sleep-cancel-btn">Bekor qilish</button>
           </div>
 
+          <!-- Audio Tracks Selection Dialog -->
+          <div id="audioTrackDialog" class="sleep-timer-dialog hidden">
+            <div class="sleep-dialog-header">Audio Yo'lagini Tanlang</div>
+            <div id="audioTrackOptions" class="sleep-options" style="flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; width: 100%;">
+              <!-- Dynamic buttons will be loaded here -->
+            </div>
+            <button id="closeAudioTrackDialog" class="sleep-cancel-btn">Bekor qilish</button>
+          </div>
+
           <!-- Player Context Menu (Moved here for Fullscreen visibility) -->
           <div id="playerContextMenu" class="context-menu hidden">
             <ul>
@@ -197,6 +207,11 @@
                   <svg id="recPauseIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                 </button>
 
+                <!-- Audio Track Selector Button -->
+                <button id="audioTrackBtn" class="control-btn" title="Audio yo'lagini tanlash" style="display: none;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+
                 <!-- Record Button -->
                 <button id="recordBtn" class="control-btn" title="Yozib olish / Record">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6" fill="currentColor"></circle></svg>
@@ -245,6 +260,16 @@
               iptv-org ochiq bazasidan minglab sifatli kanallarni yuklash.
             </p>
           </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Video Yuklanish Buferi</label>
+          <select id="bufferLevelSelect" class="filter-select">
+            <option value="15">Tezkor (15 sekund buffer)</option>
+            <option value="30">Muvozanatli (30 sekund buffer)</option>
+            <option value="60">Barqaror (60 sekund buffer - Standart)</option>
+            <option value="120">Sekin internet (120 sekund buffer)</option>
+          </select>
         </div>
 
         <div class="input-group">

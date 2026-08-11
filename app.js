@@ -59,6 +59,7 @@ class App {
       favCountLabel: document.querySelector('#favCountLabel'),
       favToast: document.querySelector('#favToast'),
       countAll: document.querySelector('#count-all'),
+      countCountries: document.querySelector('#count-countries'),
       countFav: document.querySelector('#count-fav'),
       countRecent: document.querySelector('#count-recent'),
       alphabetIndicator: document.querySelector('#alphabetIndicator'),
@@ -128,6 +129,13 @@ class App {
     document.documentElement.setAttribute('data-theme', theme);
     this.updateThemeButtons(theme);
 
+    // Apply buffer level UI selection
+    const bufferLevel = Storage.get('iptv_buffer_level', '60');
+    const bufferSelect = document.querySelector('#bufferLevelSelect');
+    if (bufferSelect) {
+      bufferSelect.value = bufferLevel;
+    }
+
     // Init modules
     Stream.init(this.elements.video, (err) => this.handleStreamError(err));
     Controls.init(this.elements.video, this.elements.videoContainer);
@@ -166,6 +174,15 @@ class App {
   }
 
   bindEvents() {
+    // Buffer Level Select Change
+    const bufferSelect = document.querySelector('#bufferLevelSelect');
+    if (bufferSelect) {
+      bufferSelect.addEventListener('change', (e) => {
+        Storage.set('iptv_buffer_level', e.target.value);
+        this.showFavToast(`⚡ Yuklanish buferi ${e.target.value} sekund qilib belgilandi.`);
+      });
+    }
+
     // Advanced Filters Toggle & Logic
     if (this.elements.filterToggleBtn) {
       this.elements.filterToggleBtn.addEventListener('click', () => {
@@ -520,6 +537,13 @@ class App {
     if (this.elements.countAll) this.elements.countAll.textContent = this.state.channels.length;
     if (this.elements.countFav) this.elements.countFav.textContent = Storage.getFavorites().length;
     if (this.elements.countRecent) this.elements.countRecent.textContent = Storage.getRecentChannels().length;
+
+    // Get count of unique countries
+    const uniqueCountries = new Set();
+    this.state.channels.forEach(ch => {
+      if (ch.countries) ch.countries.forEach(c => uniqueCountries.add(c));
+    });
+    if (this.elements.countCountries) this.elements.countCountries.textContent = uniqueCountries.size;
   }
 
   initContextMenu() {
@@ -702,6 +726,34 @@ class App {
       const recentUrls = Storage.getRecentChannels();
       // Map to maintain order from most recent
       filtered = recentUrls.map(url => this.state.channels.find(c => c.url === url)).filter(Boolean);
+    } else if (this.state.currentTab === 'countries') {
+      const countryCounts = {};
+      this.state.channels.forEach(ch => {
+        if (ch.countries && ch.countries.length) {
+          ch.countries.forEach(c => {
+            countryCounts[c] = (countryCounts[c] || 0) + 1;
+          });
+        } else {
+          countryCounts['Boshqalar'] = (countryCounts['Boshqalar'] || 0) + 1;
+        }
+      });
+
+      let countriesList = Object.keys(countryCounts).map(name => ({
+        name: name,
+        count: countryCounts[name],
+        isCountry: true
+      })).sort((a, b) => b.count - a.count);
+
+      if (this.state.searchQuery) {
+        const q = this.state.searchQuery;
+        countriesList = countriesList.filter(c => c.name.toLowerCase().includes(q));
+      }
+
+      this.state.filteredChannels = countriesList;
+      this.updateTabCounts();
+      this.elements.channelList.scrollTop = 0;
+      this.renderList();
+      return;
     }
 
     // Filter by Search (name, group, country, language)
@@ -773,12 +825,59 @@ class App {
     content.innerHTML = '';
 
     for (let i = startIndex; i < endIndex; i++) {
-        const channel = this.state.filteredChannels[i];
-        if (!channel) continue;
+        const item = this.state.filteredChannels[i];
+        if (!item) continue;
         
-        const el = this.createChannelElement(channel);
+        let el;
+        if (item.isCountry) {
+          el = this.createCountryElement(item);
+        } else {
+          el = this.createChannelElement(item);
+        }
         content.appendChild(el);
     }
+  }
+
+  createCountryElement(country) {
+    const div = document.createElement('div');
+    div.className = 'channel-item';
+    div.setAttribute('data-country', country.name);
+
+    div.innerHTML = `
+      <div class="channel-logo" style="display: flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 1.3rem;">
+        🌎
+      </div>
+      <div class="channel-info">
+        <div class="channel-name-row">
+          <span class="channel-name" style="font-weight: 700; font-size: 1.05rem;">${escapeHTML(country.name)}</span>
+        </div>
+        <div class="channel-group" style="color: var(--primary-color); font-weight: 600;">${country.count} ta kanal</div>
+      </div>
+    `;
+
+    div.addEventListener('click', () => {
+      // Apply the country filter
+      this.elements.countryFilter.value = country.name;
+      this.state.filters.country = country.name;
+
+      // Switch to All tab
+      this.state.currentTab = 'all';
+
+      // Update tab buttons active state
+      this.elements.tabBtns.forEach(btn => {
+        if (btn.dataset.tab === 'all') {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Filter and render
+      this.filterChannels();
+      this.showFavToast(`🌎 Mamlakat filtri belgilandi: ${country.name}`);
+    });
+
+    return div;
   }
 
   getFallbackLogo(name) {
