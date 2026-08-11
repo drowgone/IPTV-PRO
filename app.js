@@ -24,7 +24,8 @@ class App {
       },
       contextChannel: null,
       sleepTimer: null,
-      miniTab: 'fav'
+      miniTab: 'fav',
+      selectedCountry: null
     };
 
     this.elements = {
@@ -111,9 +112,13 @@ class App {
     const startIndex = Math.floor(scrollTop / this.virtualScroll.itemHeight);
     const channel = this.state.filteredChannels[startIndex];
     
-    if (channel && channel.name) {
-      const firstLetter = channel.name.charAt(0).toUpperCase();
-      alphabetIndicator.textContent = firstLetter;
+    if (channel) {
+      if (channel.isBackButton) {
+        alphabetIndicator.textContent = '⬅️';
+      } else if (channel.name) {
+        const firstLetter = channel.name.charAt(0).toUpperCase();
+        alphabetIndicator.textContent = firstLetter;
+      }
     }
 
     // Hide after inactivity
@@ -220,6 +225,10 @@ class App {
         this.elements.tabBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.state.currentTab = btn.dataset.tab;
+        // Reset selectedCountry whenever switching tab to/from countries to avoid stuck state
+        if (this.state.currentTab !== 'countries') {
+          this.state.selectedCountry = null;
+        }
         this.filterChannels();
       });
     });
@@ -646,9 +655,21 @@ class App {
           const langMap = new Map();
           const catMap = new Map();
 
-          extraResults[0].forEach(c => countryMap.set(c.url, c.group));
-          extraResults[1].forEach(c => langMap.set(c.url, c.group));
-          extraResults[2].forEach(c => catMap.set(c.url, c.group));
+          extraResults[0].forEach(c => {
+            if (c.group && c.group.toLowerCase() !== 'undefined' && c.group.toLowerCase() !== 'null' && c.group !== 'Boshqalar') {
+              countryMap.set(c.url, c.group);
+            }
+          });
+          extraResults[1].forEach(c => {
+            if (c.group && c.group.toLowerCase() !== 'undefined' && c.group.toLowerCase() !== 'null') {
+              langMap.set(c.url, c.group);
+            }
+          });
+          extraResults[2].forEach(c => {
+            if (c.group && c.group.toLowerCase() !== 'undefined' && c.group.toLowerCase() !== 'null' && c.group !== 'Boshqalar') {
+              catMap.set(c.url, c.group);
+            }
+          });
 
           channels = channels.map(ch => {
             // Apply Country info
@@ -666,6 +687,15 @@ class App {
               const catName = catMap.get(ch.url);
               if (!ch.group || ch.group === 'Boshqalar') ch.group = catName;
             }
+
+            // Final filter for countries/languages array safety
+            if (ch.countries) {
+              ch.countries = ch.countries.filter(c => c && c.toLowerCase() !== 'undefined' && c.toLowerCase() !== 'null');
+            }
+            if (ch.languages) {
+              ch.languages = ch.languages.filter(l => l && l.toLowerCase() !== 'undefined' && l.toLowerCase() !== 'null');
+            }
+
             return ch;
           });
         } catch (err) {
@@ -734,33 +764,61 @@ class App {
       // Map to maintain order from most recent
       filtered = recentUrls.map(url => this.state.channels.find(c => c.url === url)).filter(Boolean);
     } else if (this.state.currentTab === 'countries') {
-      const countryCounts = {};
-      this.state.channels.forEach(ch => {
-        if (ch.countries && ch.countries.length) {
-          ch.countries.forEach(c => {
-            countryCounts[c] = (countryCounts[c] || 0) + 1;
-          });
-        } else {
-          countryCounts['Boshqalar'] = (countryCounts['Boshqalar'] || 0) + 1;
+      if (this.state.selectedCountry) {
+        // We are drilling down inside a country! Show its channels
+        const countryName = this.state.selectedCountry;
+        filtered = this.state.channels.filter(ch => {
+          if (countryName === 'Boshqalar') {
+            return !ch.countries || ch.countries.length === 0;
+          }
+          return ch.countries && ch.countries.includes(countryName);
+        });
+
+        // Apply search query within this country's channels if any
+        if (this.state.searchQuery) {
+          const q = this.state.searchQuery;
+          filtered = filtered.filter(ch =>
+            ch.name.toLowerCase().includes(q) ||
+            ch.group.toLowerCase().includes(q) ||
+            (ch.languages && ch.languages.some(l => l.toLowerCase().includes(q)))
+          );
         }
-      });
 
-      let countriesList = Object.keys(countryCounts).map(name => ({
-        name: name,
-        count: countryCounts[name],
-        isCountry: true
-      })).sort((a, b) => b.count - a.count);
+        // Add back button as the very first element of our list
+        this.state.filteredChannels = [{ isBackButton: true }, ...filtered];
+        this.updateTabCounts();
+        this.elements.channelList.scrollTop = 0;
+        this.renderList();
+        return;
+      } else {
+        const countryCounts = {};
+        this.state.channels.forEach(ch => {
+          if (ch.countries && ch.countries.length) {
+            ch.countries.forEach(c => {
+              countryCounts[c] = (countryCounts[c] || 0) + 1;
+            });
+          } else {
+            countryCounts['Boshqalar'] = (countryCounts['Boshqalar'] || 0) + 1;
+          }
+        });
 
-      if (this.state.searchQuery) {
-        const q = this.state.searchQuery;
-        countriesList = countriesList.filter(c => c.name.toLowerCase().includes(q));
+        let countriesList = Object.keys(countryCounts).map(name => ({
+          name: name,
+          count: countryCounts[name],
+          isCountry: true
+        })).sort((a, b) => b.count - a.count);
+
+        if (this.state.searchQuery) {
+          const q = this.state.searchQuery;
+          countriesList = countriesList.filter(c => c.name.toLowerCase().includes(q));
+        }
+
+        this.state.filteredChannels = countriesList;
+        this.updateTabCounts();
+        this.elements.channelList.scrollTop = 0;
+        this.renderList();
+        return;
       }
-
-      this.state.filteredChannels = countriesList;
-      this.updateTabCounts();
-      this.elements.channelList.scrollTop = 0;
-      this.renderList();
-      return;
     }
 
     // Filter by Search (name, group, country, language)
@@ -836,7 +894,9 @@ class App {
         if (!item) continue;
         
         let el;
-        if (item.isCountry) {
+        if (item.isBackButton) {
+          el = this.createBackButtonElement();
+        } else if (item.isCountry) {
           el = this.createCountryElement(item);
         } else {
           el = this.createChannelElement(item);
@@ -845,14 +905,49 @@ class App {
     }
   }
 
+  createBackButtonElement() {
+    const div = document.createElement('div');
+    div.className = 'channel-item back-button-item';
+    div.style.background = 'rgba(239, 68, 68, 0.08)';
+    div.style.borderColor = 'rgba(239, 68, 68, 0.15)';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.gap = '1rem';
+    div.style.padding = '0.75rem 1rem';
+    div.style.height = '68px';
+    div.style.borderRadius = '0.75rem';
+    div.style.cursor = 'pointer';
+
+    div.innerHTML = `
+      <div class="channel-logo" style="display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); font-size: 1.3rem; color: #f87171;">
+        ⬅️
+      </div>
+      <div class="channel-info">
+        <div class="channel-name-row">
+          <span class="channel-name" style="font-weight: 700; font-size: 1.05rem; color: #fca5a5;">Orqaga</span>
+        </div>
+        <div class="channel-group" style="color: var(--text-muted);">Davlatlar ro'yxatiga qaytish</div>
+      </div>
+    `;
+
+    div.addEventListener('click', () => {
+      this.state.selectedCountry = null;
+      this.filterChannels();
+    });
+
+    return div;
+  }
+
   createCountryElement(country) {
     const div = document.createElement('div');
     div.className = 'channel-item';
     div.setAttribute('data-country', country.name);
 
+    const flagEmoji = this.getFlagEmoji(country.name);
+
     div.innerHTML = `
       <div class="channel-logo" style="display: flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 1.3rem;">
-        🌎
+        ${flagEmoji}
       </div>
       <div class="channel-info">
         <div class="channel-name-row">
@@ -863,28 +958,128 @@ class App {
     `;
 
     div.addEventListener('click', () => {
-      // Apply the country filter
-      this.elements.countryFilter.value = country.name;
-      this.state.filters.country = country.name;
-
-      // Switch to All tab
-      this.state.currentTab = 'all';
-
-      // Update tab buttons active state
-      this.elements.tabBtns.forEach(btn => {
-        if (btn.dataset.tab === 'all') {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-
-      // Filter and render
+      // Navigate to country channels within the "countries" tab
+      this.state.selectedCountry = country.name;
       this.filterChannels();
-      this.showFavToast(`🌎 Mamlakat filtri belgilandi: ${country.name}`);
+      this.showFavToast(`${flagEmoji} ${country.name} kanallari ochildi.`);
     });
 
     return div;
+  }
+
+  getFlagEmoji(countryName) {
+    if (!countryName) return '🌎';
+    const clean = countryName.trim().toUpperCase();
+
+    // Mapping dictionary for common names/codes to ISO 2-letter country code
+    const map = {
+      'UZBEKISTAN': 'UZ', 'UZ': 'UZ',
+      'UNITED STATES': 'US', 'USA': 'US', 'US': 'US',
+      'UNITED KINGDOM': 'GB', 'UK': 'GB', 'GB': 'GB', 'EN': 'GB',
+      'RUSSIA': 'RU', 'RU': 'RU',
+      'TURKEY': 'TR', 'TR': 'TR',
+      'FRANCE': 'FR', 'FR': 'FR',
+      'GERMANY': 'DE', 'DE': 'DE',
+      'ITALY': 'IT', 'IT': 'IT',
+      'SPAIN': 'ES', 'ES': 'ES',
+      'PORTUGAL': 'PT', 'PT': 'PT',
+      'NETHERLANDS': 'NL', 'NL': 'NL',
+      'POLAND': 'PL', 'PL': 'PL',
+      'GREECE': 'GR', 'GR': 'GR',
+      'ROMANIA': 'RO', 'RO': 'RO',
+      'ARGENTINA': 'AR', 'AR': 'AR',
+      'BELGIUM': 'BE', 'BE': 'BE',
+      'SWITZERLAND': 'CH', 'CH': 'CH',
+      'AUSTRIA': 'AT', 'AT': 'AT',
+      'AUSTRALIA': 'AU', 'AU': 'AU',
+      'CANADA': 'CA', 'CA': 'CA',
+      'INDIA': 'IN', 'IN': 'IN',
+      'PAKISTAN': 'PK', 'PK': 'PK',
+      'BANGLADESH': 'BD', 'BD': 'BD',
+      'IRAN': 'IR', 'IR': 'IR',
+      'ISRAEL': 'IL', 'IL': 'IL',
+      'CZECH': 'CZ', 'CZ': 'CZ',
+      'SLOVAKIA': 'SK', 'SK': 'SK',
+      'HUNGARY': 'HU', 'HU': 'HU',
+      'BULGARIA': 'BG', 'BG': 'BG',
+      'SERBIA': 'RS', 'RS': 'RS',
+      'CROATIA': 'HR', 'HR': 'HR',
+      'SLOVENIA': 'SI', 'SI': 'SI',
+      'MACEDONIA': 'MK', 'MK': 'MK',
+      'ALBANIA': 'AL', 'AL': 'AL',
+      'KAZAKHSTAN': 'KZ', 'KZ': 'KZ',
+      'UKRAINE': 'UA', 'UA': 'UA',
+      'AZERBAIJAN': 'AZ', 'AZ': 'AZ',
+      'GEORGIA': 'GE', 'GE': 'GE',
+      'ARMENIA': 'AM', 'AM': 'AM',
+      'ESTONIA': 'EE', 'EE': 'EE',
+      'LATVIA': 'LV', 'LV': 'LV',
+      'LITHUANIA': 'LT', 'LT': 'LT',
+      'FINLAND': 'FI', 'FI': 'FI',
+      'SWEDEN': 'SE', 'SE': 'SE',
+      'NORWAY': 'NO', 'NO': 'NO',
+      'DENMARK': 'DK', 'DK': 'DK',
+      'IRELAND': 'IE', 'IE': 'IE',
+      'JAPAN': 'JP', 'JP': 'JP',
+      'KOREA': 'KR', 'KR': 'KR',
+      'CHINA': 'CN', 'CN': 'CN',
+      'TAIWAN': 'TW', 'TW': 'TW',
+      'VIETNAM': 'VN', 'VN': 'VN',
+      'THAILAND': 'TH', 'TH': 'TH',
+      'PHILIPPINES': 'PH', 'PH': 'PH',
+      'MALAYSIA': 'MY', 'MY': 'MY',
+      'INDONESIA': 'ID', 'ID': 'ID',
+      'SINGAPORE': 'SG', 'SG': 'SG',
+      'BRAZIL': 'BR', 'BR': 'BR',
+      'MEXICO': 'MX', 'MX': 'MX',
+      'CHILE': 'CL', 'CL': 'CL',
+      'COLOMBIA': 'CO', 'CO': 'CO',
+      'PERU': 'PE', 'PE': 'PE',
+      'VENEZUELA': 'VE', 'VE': 'VE',
+      'ECUADOR': 'EC', 'EC': 'EC',
+      'URUGUAY': 'UY', 'UY': 'UY',
+      'PARAGUAY': 'PY', 'PY': 'PY',
+      'BOLIVIA': 'BO', 'BO': 'BO',
+      'CUBA': 'CU', 'CU': 'CU',
+      'DOMINICAN REPUBLIC': 'DO', 'DO': 'DO',
+      'PUERTO RICO': 'PR', 'PR': 'PR',
+      'GUATEMALA': 'GT', 'GT': 'GT',
+      'HONDURAS': 'HN', 'HN': 'HN',
+      'EL SALVADOR': 'SV', 'SV': 'SV',
+      'NICARAGUA': 'NI', 'NI': 'NI',
+      'COSTA RICA': 'CR', 'CR': 'CR',
+      'PANAMA': 'PA', 'PA': 'PA',
+      'JAMAICA': 'JM', 'JM': 'JM',
+      'TRINIDAD': 'TT', 'TT': 'TT',
+      'SOUTH AFRICA': 'ZA', 'ZA': 'ZA',
+      'NIGERIA': 'NG', 'NG': 'NG',
+      'KENYA': 'KE', 'KE': 'KE',
+      'GHANA': 'GH', 'GH': 'GH',
+      'EGYPT': 'EG', 'EG': 'EG',
+      'ALGERIA': 'DZ', 'DZ': 'DZ',
+      'MOROCCO': 'MA', 'MA': 'MA',
+      'TUNISIA': 'TN', 'TN': 'TN',
+      'LIBYA': 'LY', 'LY': 'LY',
+      'SUDAN': 'SD', 'SD': 'SD',
+      'ETHIOPIA': 'ET', 'ET': 'ET',
+      'TANZANIA': 'TZ', 'TZ': 'TZ',
+      'UGANDA': 'UG', 'UG': 'UG',
+      'ZAMBIA': 'ZM', 'ZM': 'ZM',
+      'ZIMBABWE': 'ZW', 'ZW': 'ZW'
+    };
+
+    let code = map[clean];
+    if (!code) {
+      if (clean.length === 2) {
+        code = clean;
+      } else {
+        return '🌎';
+      }
+    }
+
+    return code
+      .toUpperCase()
+      .replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
   }
 
   getFallbackLogo(name) {
@@ -1164,19 +1359,21 @@ class App {
     }, 3500);
   }
   playNextChannel() {
-    if (this.state.filteredChannels.length === 0) return;
-    const currentIndex = this.state.filteredChannels.findIndex(ch => ch.url === this.state.activeChannel?.url);
-    const nextIndex = (currentIndex + 1) % this.state.filteredChannels.length;
-    this.playChannel(this.state.filteredChannels[nextIndex]);
-    this.showFavToast(`⏭ Keyingi: ${this.state.filteredChannels[nextIndex].name}`);
+    const list = this.state.filteredChannels.filter(ch => !ch.isBackButton && !ch.isCountry);
+    if (list.length === 0) return;
+    const currentIndex = list.findIndex(ch => ch.url === this.state.activeChannel?.url);
+    const nextIndex = (currentIndex + 1) % list.length;
+    this.playChannel(list[nextIndex]);
+    this.showFavToast(`⏭ Keyingi: ${list[nextIndex].name}`);
   }
 
   playPreviousChannel() {
-    if (this.state.filteredChannels.length === 0) return;
-    const currentIndex = this.state.filteredChannels.findIndex(ch => ch.url === this.state.activeChannel?.url);
-    const prevIndex = (currentIndex - 1 + this.state.filteredChannels.length) % this.state.filteredChannels.length;
-    this.playChannel(this.state.filteredChannels[prevIndex]);
-    this.showFavToast(`⏮ Oldingi: ${this.state.filteredChannels[prevIndex].name}`);
+    const list = this.state.filteredChannels.filter(ch => !ch.isBackButton && !ch.isCountry);
+    if (list.length === 0) return;
+    const currentIndex = list.findIndex(ch => ch.url === this.state.activeChannel?.url);
+    const prevIndex = (currentIndex - 1 + list.length) % list.length;
+    this.playChannel(list[prevIndex]);
+    this.showFavToast(`⏮ Oldingi: ${list[prevIndex].name}`);
   }
 
   renderMiniList() {
@@ -1451,6 +1648,12 @@ class App {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  new App();
-});
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('DOMContentLoaded', () => {
+    new App();
+  });
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = App;
+}
