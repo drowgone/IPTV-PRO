@@ -98,13 +98,16 @@ const Parser = {
         // Country and Language can be multi-value (semicolon-separated)
         const rawCountry = countryMatch ? countryMatch[1] : '';
         const rawLanguage = languageMatch ? languageMatch[1] : '';
-        const countries = rawCountry ? rawCountry.split(/[;,]/).map(c => c.trim()).filter(Boolean) : [];
-        const languages = rawLanguage ? rawLanguage.split(/[;,]/).map(l => l.trim()).filter(Boolean) : [];
+        const countries = rawCountry ? rawCountry.split(/[;,]/).map(c => c.trim()).filter(c => c && c.toLowerCase() !== 'undefined' && c.toLowerCase() !== 'null' && c !== '-') : [];
+        const languages = rawLanguage ? rawLanguage.split(/[;,]/).map(l => l.trim()).filter(l => l && l.toLowerCase() !== 'undefined' && l.toLowerCase() !== 'null' && l !== '-') : [];
 
         // Mix extracted prefixes into countries and tags so user can filter them
         extractedPrefixes.forEach(pref => {
-            if (!countries.includes(pref)) countries.push(pref);
-            if (!tags.includes(pref)) tags.unshift(pref); // Show it visually on card as well
+            const cleanPref = pref.toUpperCase();
+            if (cleanPref !== 'UNDEFINED' && cleanPref !== 'NULL') {
+                if (!countries.includes(pref)) countries.push(pref);
+                if (!tags.includes(pref)) tags.unshift(pref); // Show it visually on card as well
+            }
         });
 
         currentItem = {
