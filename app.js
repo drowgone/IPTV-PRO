@@ -676,6 +676,17 @@ class App {
       this.state.channels = channels;
       this.populateFilters();
       this.filterChannels();
+
+      // Load EPG
+      const epgUrl = channels.epgUrl || 'https://raw.githubusercontent.com/StrangeDrVN/epg/public/guide.xml.gz';
+      if (typeof EPG !== 'undefined') {
+        EPG.load(epgUrl).then(() => {
+          if (this.state.activeChannel) {
+            this.updateEpgDisplay(this.state.activeChannel);
+          }
+        });
+      }
+
       return true;
     } catch (error) {
       alert('Failed to load playlist. Please check the URL and CORS settings.');
@@ -1000,6 +1011,7 @@ class App {
     this.renderList();
 
     this.elements.channelNameDisplay.textContent = channel.name;
+    this.updateEpgDisplay(channel);
     
     // Reset UI
     this.hideStreamError();
@@ -1010,6 +1022,30 @@ class App {
     // Close sidebar on mobile after selection
     if (window.innerWidth <= 768) {
       this.toggleSidebar(false);
+    }
+  }
+
+  updateEpgDisplay(channel) {
+    const epgDisplay = document.querySelector('#epgDisplay');
+    if (!epgDisplay) return;
+
+    if (typeof EPG !== 'undefined') {
+      const epgInfo = EPG.getNowNext(channel.id);
+      if (epgInfo && epgInfo.current) {
+        const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const cur = epgInfo.current;
+        const nxt = epgInfo.next;
+
+        let text = `🟢 ${formatTime(cur.start)} - ${formatTime(cur.stop)} | ${cur.title}`;
+        if (nxt) {
+          text += ` <br><span style="opacity: 0.65;">⏭ Keyingi: ${formatTime(nxt.start)} - ${formatTime(nxt.stop)} | ${nxt.title}</span>`;
+        }
+        epgDisplay.innerHTML = text;
+      } else {
+        epgDisplay.innerHTML = '📅 Dasturlar jadvali yuklanmagan';
+      }
+    } else {
+      epgDisplay.innerHTML = '📅 Dasturlar jadvali yuklanmagan';
     }
   }
 

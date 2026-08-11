@@ -19,6 +19,15 @@ const Parser = {
     const lines = content.split('\n');
     const playlist = [];
     let currentItem = {};
+    let epgUrl = '';
+
+    // Extract x-tvg-url if present on the first line (#EXTM3U)
+    if (lines[0] && lines[0].startsWith('#EXTM3U')) {
+      const tvgUrlMatch = lines[0].match(/x-tvg-url="([^"]*)"/i);
+      if (tvgUrlMatch) {
+        epgUrl = tvgUrlMatch[1].split(',')[0].trim();
+      }
+    }
 
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i].trim();
@@ -126,6 +135,7 @@ const Parser = {
       }
     }
 
+    playlist.epgUrl = epgUrl;
     return playlist;
   }
 };
