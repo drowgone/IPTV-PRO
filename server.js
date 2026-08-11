@@ -26,6 +26,64 @@ const MIME_TYPES = {
 const server = http.createServer((request, response) => {
     console.log(`>> So'rov keldi: ${request.url}`);
 
+    // CORS Proxy endpoint
+    if (request.url.startsWith('/proxy?')) {
+        const urlModule = require('url');
+        const parsedUrl = urlModule.parse(request.url, true);
+        const targetUrl = parsedUrl.query.url;
+
+        if (!targetUrl) {
+            response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+            response.end('400 - "url" parametri kiritilishi shart.');
+            return;
+        }
+
+        try {
+            const https = require('https');
+            const clientUrlObj = urlModule.parse(targetUrl);
+            const protocol = clientUrlObj.protocol === 'https:' ? https : http;
+
+            if (clientUrlObj.protocol !== 'http:' && clientUrlObj.protocol !== 'https:') {
+                response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+                response.end('400 - Noto\'g\'ri protokol. Faqat HTTP yoki HTTPS ruxsat etiladi.');
+                return;
+            }
+
+            const headers = {
+                'User-Agent': request.headers['user-agent'] || 'Mozilla/5.0'
+            };
+
+            const proxyReq = protocol.get(targetUrl, { headers }, (targetRes) => {
+                const responseHeaders = {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': '*',
+                    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                    'Content-Type': targetRes.headers['content-type'] || 'application/octet-stream'
+                };
+
+                if (targetRes.headers['content-encoding']) {
+                    responseHeaders['content-encoding'] = targetRes.headers['content-encoding'];
+                }
+
+                response.writeHead(targetRes.statusCode, responseHeaders);
+                targetRes.pipe(response);
+            });
+
+            proxyReq.on('error', (err) => {
+                console.error('Proxy Error:', err.message);
+                response.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+                response.end('502 - Proxy orqali ulanib bo\'lmadi: ' + err.message);
+            });
+
+            request.pipe(proxyReq);
+            return;
+        } catch (e) {
+            response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+            response.end('500 - Server xatosi: ' + e.message);
+            return;
+        }
+    }
+
     // Decode URL to prevent %2e%2e or other traversal representations
     let safeUrl;
     try {
