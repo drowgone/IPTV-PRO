@@ -129,3 +129,7 @@ const Parser = {
     return playlist;
   }
 };
+
+if (typeof module !== 'undefined') {
+  module.exports = Parser;
+}

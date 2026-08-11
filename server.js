@@ -26,12 +26,31 @@ const MIME_TYPES = {
 const server = http.createServer((request, response) => {
     console.log(`>> So'rov keldi: ${request.url}`);
 
-    let filePath = '.' + request.url;
-    if (filePath === './') {
-        filePath = './index.html';
-    } else {
-        // Parametrlarni tozalash (masalan: ?stream=url)
-        filePath = filePath.split('?')[0];
+    // Decode URL to prevent %2e%2e or other traversal representations
+    let safeUrl;
+    try {
+        safeUrl = decodeURIComponent(request.url);
+    } catch (e) {
+        safeUrl = request.url;
+    }
+
+    // Clean query parameters
+    safeUrl = safeUrl.split('?')[0];
+
+    // Safe path resolution
+    const rootPath = path.resolve(__dirname || '.');
+    let filePath = path.join(rootPath, safeUrl);
+
+    // If path is root or trailing slash, default to index.html
+    if (filePath === rootPath || filePath === rootPath + path.sep) {
+        filePath = path.join(rootPath, 'index.html');
+    }
+
+    // Path Traversal Security check: verify file is within project root
+    if (!filePath.startsWith(rootPath)) {
+        response.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        response.end('403 - Kirish taqiqlangan (Path Traversal himoyasi)');
+        return;
     }
 
     const extname = String(path.extname(filePath)).toLowerCase();

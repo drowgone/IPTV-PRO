@@ -1,3 +1,13 @@
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 class App {
   constructor() {
     this.state = {
@@ -280,9 +290,11 @@ class App {
     this.elements.saveSettingsBtn.addEventListener('click', async () => {
       const url = this.elements.m3uInput.value.trim();
       if (url) {
-        Storage.setM3uUrl(url);
-        await this.loadPlaylist(url);
-        this.elements.settingsModal.classList.remove('show');
+        const success = await this.loadPlaylist(url);
+        if (success) {
+          Storage.setM3uUrl(url);
+          this.elements.settingsModal.classList.remove('show');
+        }
       }
     });
 
@@ -644,8 +656,10 @@ class App {
       this.state.channels = channels;
       this.populateFilters();
       this.filterChannels();
+      return true;
     } catch (error) {
       alert('Failed to load playlist. Please check the URL and CORS settings.');
+      return false;
     } finally {
       this.elements.loader.classList.remove('show');
     }
@@ -729,6 +743,19 @@ class App {
     // Set phantom height
     phantom.style.height = `${totalItems * itemHeight}px`;
 
+    if (totalItems === 0) {
+      phantom.style.height = '0px';
+      content.style.transform = 'translateY(0px)';
+      content.innerHTML = `
+        <div class="empty-state" style="padding: 3rem 1.5rem; text-align: center; color: var(--text-muted); opacity: 0.8;">
+          <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
+          <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-color);">Hech narsa topilmadi</div>
+          <p style="font-size: 0.85rem;">Qidiruv so'zini yoki filtrlarni o'zgartirib ko'ring.</p>
+        </div>
+      `;
+      return;
+    }
+
     // Calculate visible range
     const scrollTop = channelList.scrollTop;
     const containerHeight = channelList.clientHeight;
@@ -784,20 +811,31 @@ class App {
     const logoSrc = (channel.logo && channel.logo !== 'undefined') ? channel.logo : fallbackLogo;
 
     const tagsHtml = channel.tags && channel.tags.length > 0 
-      ? `<div class="channel-tags">${channel.tags.map(t => `<span class="tag ${this.getTagClass(t)}">${t}</span>`).join('')}</div>`
+      ? `<div class="channel-tags">${channel.tags.map(t => `<span class="tag ${this.getTagClass(t)}">${escapeHTML(t)}</span>`).join('')}</div>`
+      : '';
+
+    const escLogoSrc = escapeHTML(logoSrc);
+    const escName = escapeHTML(channel.name);
+    const escGroup = escapeHTML(channel.group);
+
+    const countriesHtml = channel.countries && channel.countries.length
+      ? `<span class="meta-tag">🌎 ${escapeHTML(channel.countries.join(', '))}</span>`
+      : '';
+    const languagesHtml = channel.languages && channel.languages.length
+      ? `<span class="meta-tag">🗣 ${escapeHTML(channel.languages[0])}</span>`
       : '';
 
     div.innerHTML = `
-      <img src="${logoSrc}" class="channel-logo loading" alt="" loading="lazy">
+      <img src="${escLogoSrc}" class="channel-logo loading" alt="" loading="lazy">
       <div class="channel-info">
         <div class="channel-name-row">
-          <span class="channel-name">${channel.name}</span>
+          <span class="channel-name">${escName}</span>
           ${tagsHtml}
         </div>
-        <div class="channel-group">${channel.group}</div>
+        <div class="channel-group">${escGroup}</div>
         <div class="meta-tags">
-          ${channel.countries && channel.countries.length ? `<span class="meta-tag">🌎 ${channel.countries.join(', ')}</span>` : ''}
-          ${channel.languages && channel.languages.length ? `<span class="meta-tag">🗣 ${channel.languages[0]}</span>` : ''}
+          ${countriesHtml}
+          ${languagesHtml}
         </div>
       </div>
       <button class="fav-btn ${isFav ? 'active' : ''}">
@@ -1035,12 +1073,15 @@ class App {
       item.className = `mini-channel-item ${active ? 'active' : ''}`;
       
       const logo = ch.logo && ch.logo !== 'undefined' ? ch.logo : this.getFallbackLogo(ch.name);
+      const escLogo = escapeHTML(logo);
+      const escName = escapeHTML(ch.name);
+      const escGroup = escapeHTML(ch.group);
       
       item.innerHTML = `
-        <img src="${logo}" alt="" onerror="this.src='${this.getFallbackLogo(ch.name)}'">
+        <img src="${escLogo}" alt="" onerror="this.src='${escapeHTML(this.getFallbackLogo(ch.name))}'">
         <div class="mini-ch-info">
-          <div class="mini-ch-name">${ch.name}</div>
-          <div class="mini-ch-group">${ch.group}</div>
+          <div class="mini-ch-name">${escName}</div>
+          <div class="mini-ch-group">${escGroup}</div>
         </div>
       `;
       
@@ -1058,42 +1099,6 @@ class App {
         item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });
-  }
-
-  showContextMenu(e, channel) {
-    if (!channel) return;
-    e.preventDefault();
-    this.state.contextChannel = channel;
-    
-    const menu = this.elements.contextMenu;
-    if (!menu) return;
-
-    // Update Favorite text
-    const favLi = menu.querySelector('#menuFav');
-    const isFav = Storage.isFavorite(channel.url);
-    favLi.innerHTML = isFav ? "💔 Sevimlardan o'chirish" : "❤️ Sevimlilarga qo'shish";
-
-    menu.classList.remove('hidden');
-    menu.classList.add('show');
-
-    // Position relative to video-container
-    const container = this.elements.videoContainer;
-    const rect = container.getBoundingClientRect();
-    
-    const menuWidth = 220;
-    const menuHeight = 240;
-    
-    let x = e.clientX - rect.left;
-    let y = e.clientY - rect.top;
-
-    if (x + menuWidth > rect.width) x -= menuWidth;
-    if (y + menuHeight > rect.height) y -= menuHeight;
-    
-    x = Math.max(0, x);
-    y = Math.max(0, y);
-
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
   }
 
   initMiniScroll() {
