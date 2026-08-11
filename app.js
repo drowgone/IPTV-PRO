@@ -143,33 +143,29 @@ class App {
     // Event Listeners
     this.bindEvents();
 
-    // Load Playlist
-    const savedUrl = Storage.getM3uUrl();
-    if (savedUrl) {
-      this.elements.m3uInput.value = savedUrl;
-      await this.loadPlaylist(savedUrl);
-      
-      // Check for deep link (?stream=...)
-      const params = new URLSearchParams(window.location.search);
-      const deepStream = params.get('stream');
-      
-      if (deepStream) {
-        const ch = this.state.channels.find(c => c.url === deepStream);
-        if (ch) {
-          this.playChannel(ch);
-        } else {
-          this.playChannel({ name: 'Tashqi havola', url: deepStream, group: 'M3U' });
-        }
+    // Load Playlist (Default to iptv-org global playlist)
+    const savedUrl = Storage.getM3uUrl() || 'https://iptv-org.github.io/iptv/index.m3u';
+    this.elements.m3uInput.value = savedUrl;
+    await this.loadPlaylist(savedUrl);
+    Storage.setM3uUrl(savedUrl);
+
+    // Check for deep link (?stream=...)
+    const params = new URLSearchParams(window.location.search);
+    const deepStream = params.get('stream');
+
+    if (deepStream) {
+      const ch = this.state.channels.find(c => c.url === deepStream);
+      if (ch) {
+        this.playChannel(ch);
       } else {
-        // Restore last channel
-        const lastChannel = Storage.getLastChannel();
-        if (lastChannel) {
-          this.playChannel(lastChannel);
-        }
+        this.playChannel({ name: 'Tashqi havola', url: deepStream, group: 'M3U' });
       }
     } else {
-      // Show settings modal if no URL
-      this.elements.settingsModal.classList.add('show');
+      // Restore last channel
+      const lastChannel = Storage.getLastChannel();
+      if (lastChannel) {
+        this.playChannel(lastChannel);
+      }
     }
   }
 
