@@ -86,10 +86,14 @@ const Controls = {
         this.updateVolumeIcon(this.video.muted ? 0 : this.video.volume);
     });
 
+    // Video Click to Play/Pause
+    this.video.addEventListener('click', () => this.togglePlay());
+
     // Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
-      // Ignore if typing in input
-      if (e.target.tagName === 'INPUT') return;
+      // Ignore if typing or focusing on interactive controls
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || activeTag === 'BUTTON') return;
 
       switch(e.code) {
         case 'Space':
@@ -260,16 +264,19 @@ const Controls = {
       
       this.recordedChunks = [];
       
-      // Determine the best MIME type for high-quality ".mp4" goal
+      // Determine the best MIME type for high-quality video
       let mimeType = 'video/webm'; // fallback
-      let ext = 'mp4'; // Default to mp4 as requested
+      let ext = 'webm';
       
-      if (MediaRecorder.isTypeSupported('video/webm; codecs=h264')) {
-        mimeType = 'video/webm; codecs=h264';
-      } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      if (MediaRecorder.isTypeSupported('video/mp4')) {
         mimeType = 'video/mp4';
+        ext = 'mp4';
+      } else if (MediaRecorder.isTypeSupported('video/webm; codecs=h264')) {
+        mimeType = 'video/webm; codecs=h264';
+        ext = 'webm';
       } else if (MediaRecorder.isTypeSupported('video/webm; codecs=vp9,opus')) {
         mimeType = 'video/webm; codecs=vp9,opus';
+        ext = 'webm';
       }
 
       const options = { 
@@ -292,12 +299,6 @@ const Controls = {
         }
         
         let targetType = mimeType;
-        if (!mimeType.includes('mp4')) {
-          // If we saved in webm (with h264), we can force the blob type
-          // so that VLC / OS treats it as an H.264 video.
-          targetType = 'video/mp4';
-        }
-        
         const blob = new Blob(this.recordedChunks, { type: targetType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
